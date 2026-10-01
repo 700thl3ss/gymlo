@@ -68,8 +68,14 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Slightly larger base for iPhone readability */
-  font-size: 16px;
+  /* Optimized comfortable base font size for iPhone screens */
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* Ensure inputs don't auto-zoom while remaining large and legible */
+input, select, textarea, button {
+  font-family: inherit;
 }
 
 /* iOS safe-area support */

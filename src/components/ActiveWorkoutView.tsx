@@ -393,11 +393,11 @@ export function ActiveWorkoutView({
           </div>
 
           {/* Action buttons with Dedicated Rest Button */}
-          <div className="flex items-center space-x-2 flex-wrap">
+          <div className="flex items-center space-x-2 flex-wrap gap-y-2 mt-2 sm:mt-0">
             {/* Rest Button */}
             <button
               onClick={() => setShowRestTimer(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[var(--secondary)] text-[var(--foreground)] hover:border-[var(--accent)] border border-[var(--border)] transition-colors flex items-center space-x-1.5"
+              className="px-4 py-2.5 rounded-xl text-sm font-bold bg-[var(--secondary)] text-[var(--foreground)] hover:border-[var(--accent)] border border-[var(--border)] transition-colors flex items-center space-x-1.5"
               title="Open Rest Timer"
             >
               <Timer className="w-4 h-4 text-[var(--accent)]" />
@@ -406,7 +406,7 @@ export function ActiveWorkoutView({
 
             <button
               onClick={discardWorkout}
-              className="px-3 py-2 rounded-xl text-xs font-bold text-[var(--muted-foreground)] hover:text-red-500 hover:bg-[var(--secondary)] transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-sm font-bold text-[var(--muted-foreground)] hover:text-red-500 hover:bg-[var(--secondary)] transition-colors"
             >
               Discard
             </button>
@@ -414,7 +414,7 @@ export function ActiveWorkoutView({
             <button
               onClick={finishWorkout}
               disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:opacity-90 text-[var(--accent-foreground)] font-bold text-sm transition-colors flex items-center space-x-1.5 active:scale-95 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:opacity-90 text-[var(--accent-foreground)] font-bold text-sm transition-colors flex items-center space-x-2 active:scale-95 disabled:opacity-50 shadow-sm"
             >
               <Check className="w-4 h-4 stroke-[2.5]" />
               <span>{isSaving ? "Saving..." : "Finish Workout"}</span>
@@ -429,7 +429,7 @@ export function ActiveWorkoutView({
             value={workoutNotes}
             onChange={(e) => setWorkoutNotes(e.target.value)}
             placeholder="Add general workout notes..."
-            className="w-full text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] focus:outline-none focus:border-[var(--accent)]"
+            className="w-full text-sm text-[var(--foreground)] placeholder-[var(--muted-foreground)] bg-[var(--background)] rounded-xl px-3.5 py-2.5 border border-[var(--border)] focus:outline-none focus:border-[var(--accent)]"
           />
         </div>
       </div>
@@ -474,28 +474,28 @@ export function ActiveWorkoutView({
             >
               {/* Exercise Header */}
               <div className="flex items-start justify-between pb-3 border-b border-[var(--border)] mb-3">
-                <div>
-                  <h3 className="text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
                     {exercise.name}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                    <span className="text-[11px] font-semibold text-[var(--foreground)] bg-[var(--secondary)] px-2 py-0.5 rounded border border-[var(--border)]">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="text-xs font-semibold text-[var(--foreground)] bg-[var(--secondary)] px-2.5 py-1 rounded-md border border-[var(--border)]">
                       {exercise.primaryMuscle}
                     </span>
                     {exercise.category && (
-                      <span className="text-[11px] font-semibold text-[var(--accent)] bg-[var(--secondary)] px-2 py-0.5 rounded border border-[var(--border)]">
+                      <span className="text-xs font-semibold text-[var(--accent)] bg-[var(--secondary)] px-2.5 py-1 rounded-md border border-[var(--border)]">
                         {exercise.category}
                       </span>
                     )}
                     {exercise.equipment && (
-                      <span className="text-[11px] font-medium text-[var(--muted-foreground)] bg-[var(--background)] px-2 py-0.5 rounded border border-[var(--border)]">
+                      <span className="text-xs font-medium text-[var(--muted-foreground)] bg-[var(--background)] px-2.5 py-1 rounded-md border border-[var(--border)]">
                         {exercise.equipment}
                       </span>
                     )}
 
                     {(beatTarget.maxWeight > 0 || beatTarget.maxReps > 0) && (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
-                        <Trophy className="w-3 h-3 text-amber-500 stroke-[2.5]" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-md">
+                        <Trophy className="w-3.5 h-3.5 text-amber-500 stroke-[2.5]" />
                         <span>PR:</span>
                         {beatTarget.maxWeight > 0 && (
                           <span>{beatTarget.maxWeight} {unit}</span>
@@ -508,13 +508,13 @@ export function ActiveWorkoutView({
                     )}
 
                     {/* Open space: Editable Description / Machine Settings */}
-                    <div className="flex-1 min-w-[200px] max-w-lg">
+                    <div className="flex-1 min-w-[200px] max-w-lg mt-1 sm:mt-0">
                       <input
                         type="text"
                         value={sets[0]?.notes || ""}
                         onChange={(e) => handleUpdateExerciseNote(exercise.id, e.target.value)}
                         placeholder="Settings / notes (e.g. pin #6, seat 3)..."
-                        className="w-full text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] bg-[var(--background)] px-2.5 py-1 rounded-md border border-[var(--border)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                        className="w-full text-xs sm:text-sm text-[var(--foreground)] placeholder-[var(--muted-foreground)] bg-[var(--background)] px-3 py-1.5 rounded-lg border border-[var(--border)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                       />
                     </div>
                   </div>
@@ -522,7 +522,7 @@ export function ActiveWorkoutView({
 
                 <button
                   onClick={() => removeExercise(exercise.id)}
-                  className="text-[var(--muted-foreground)] hover:text-red-500 p-1.5 rounded-lg hover:bg-[var(--secondary)] transition-colors"
+                  className="text-[var(--muted-foreground)] hover:text-red-500 p-2 rounded-xl hover:bg-[var(--secondary)] transition-colors"
                   title="Remove exercise"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -595,7 +595,7 @@ export function ActiveWorkoutView({
                   return (
                     <div
                       key={set.id}
-                      className={`p-2 rounded-xl border transition-colors space-y-1.5 ${
+                      className={`p-2.5 sm:p-3 rounded-xl border transition-colors space-y-2 ${
                         set.isCompleted
                           ? "bg-[var(--secondary)] border-[var(--accent)] text-[var(--foreground)]"
                           : "bg-[var(--background)] border-[var(--border)] hover:border-[var(--muted-foreground)]"
@@ -606,13 +606,13 @@ export function ActiveWorkoutView({
                           isPlateLoaded ? "grid-cols-12" : "grid-cols-10"
                         }`}
                       >
-                        <div className="col-span-1 text-center font-bold text-sm text-[var(--foreground)]">
+                        <div className="col-span-1 text-center font-bold text-base text-[var(--foreground)]">
                           {set.setNumber}
                         </div>
 
                         {isPlateLoaded && (
                           <div
-                            className="col-span-3 text-[11px] font-mono text-[var(--accent)] font-semibold text-center truncate"
+                            className="col-span-3 text-xs sm:text-sm font-mono text-[var(--accent)] font-bold text-center truncate"
                             title={plateDisplay}
                           >
                             {plateDisplay}
@@ -633,16 +633,16 @@ export function ActiveWorkoutView({
                               handleSetChange(set.id, "weight", e.target.value)
                             }
                             placeholder={prevSet?.weight ? `${prevSet.weight}` : unit}
-                            className={`w-full text-center text-sm font-semibold font-mono bg-[var(--card)] border rounded-lg py-1.5 focus:outline-none text-[var(--foreground)] transition-colors ${
+                            className={`w-full text-center text-base font-bold font-mono bg-[var(--card)] border rounded-xl py-2 focus:outline-none text-[var(--foreground)] transition-colors ${
                               beatsWeight
                                 ? "border-amber-500/80 ring-1 ring-amber-500/50"
                                 : "border-[var(--border)] focus:border-[var(--accent)]"
                             }`}
                           />
                           {beatsWeight && (
-                            <span className="absolute -top-1.5 -right-1 flex h-2 w-2">
+                            <span className="absolute -top-1.5 -right-1 flex h-2.5 w-2.5">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
                             </span>
                           )}
                         </div>
@@ -661,45 +661,45 @@ export function ActiveWorkoutView({
                               handleSetChange(set.id, "reps", e.target.value)
                             }
                             placeholder={prevSet?.reps ? `${prevSet.reps}` : "0"}
-                            className={`w-full text-center text-sm font-semibold font-mono bg-[var(--card)] border rounded-lg py-1.5 focus:outline-none text-[var(--foreground)] transition-colors ${
+                            className={`w-full text-center text-base font-bold font-mono bg-[var(--card)] border rounded-xl py-2 focus:outline-none text-[var(--foreground)] transition-colors ${
                               beatsReps
                                 ? "border-amber-500/80 ring-1 ring-amber-500/50"
                                 : "border-[var(--border)] focus:border-[var(--accent)]"
                             }`}
                           />
                           {beatsReps && (
-                            <span className="absolute -top-1.5 -right-1 flex h-2 w-2">
+                            <span className="absolute -top-1.5 -right-1 flex h-2.5 w-2.5">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
                             </span>
                           )}
                         </div>
 
-                        <div className="col-span-2 flex items-center justify-center space-x-1">
+                        <div className="col-span-2 flex items-center justify-center space-x-1.5">
                           <button
                             onClick={() => toggleSetCompleted(set.id)}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all ${
                               set.isCompleted
-                                ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                                ? "bg-[var(--accent)] text-[var(--accent-foreground)] shadow-sm"
                                 : "bg-[var(--secondary)] hover:opacity-90 text-[var(--muted-foreground)]"
                             }`}
                           >
-                            <Check className={`w-4 h-4 stroke-[2.5] ${set.isCompleted ? "text-[var(--accent-foreground)]" : "text-[var(--muted-foreground)]"}`} />
+                            <Check className={`w-5 h-5 stroke-[2.5] ${set.isCompleted ? "text-[var(--accent-foreground)]" : "text-[var(--muted-foreground)]"}`} />
                           </button>
                           <button
                             onClick={() => removeSet(set.id)}
-                            className="text-[var(--muted-foreground)] hover:text-red-500 p-1 transition-colors"
+                            className="text-[var(--muted-foreground)] hover:text-red-500 p-1.5 rounded-lg transition-colors"
                             title="Delete set"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
 
-                      {/* Plate Quick Adders for Smith Machine and Barbell */}
+                      {/* Plate Quick Adders for Smith Machine, Barbell, Leg Press */}
                       {isPlateLoaded && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[var(--border)]/60 text-xs">
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted-foreground)] mr-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-[var(--border)]/60 text-xs">
+                          <span className="text-[11px] uppercase font-bold tracking-wider text-[var(--muted-foreground)] mr-1">
                             Plates:
                           </span>
                           {[2.5, 5, 10, 25, 35, 45].map((val) => (
@@ -708,7 +708,7 @@ export function ActiveWorkoutView({
                               type="button"
                               onClick={() => addWeightToSet(set.id, val)}
                               title={`Add ${val} lbs`}
-                              className="px-2 py-0.5 text-[11px] font-bold font-mono rounded-md bg-[var(--secondary)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--foreground)] border border-[var(--border)] active:scale-95 transition-all shadow-sm"
+                              className="px-2.5 py-1 text-xs font-bold font-mono rounded-lg bg-[var(--secondary)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--foreground)] border border-[var(--border)] active:scale-95 transition-all shadow-sm"
                             >
                               +{val}
                             </button>
@@ -717,7 +717,7 @@ export function ActiveWorkoutView({
                             type="button"
                             onClick={() => resetSetWeight(set.id)}
                             title="Reset weight to 0"
-                            className="px-1.5 py-0.5 text-[10px] font-medium font-mono rounded-md bg-transparent hover:bg-red-500/10 text-[var(--muted-foreground)] hover:text-red-500 border border-[var(--border)] active:scale-95 transition-all ml-auto"
+                            className="px-2 py-1 text-[11px] font-semibold font-mono rounded-lg bg-transparent hover:bg-red-500/10 text-[var(--muted-foreground)] hover:text-red-500 border border-[var(--border)] active:scale-95 transition-all ml-auto"
                           >
                             Clear
                           </button>
