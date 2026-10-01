@@ -531,24 +531,47 @@ export function ActiveWorkoutView({
 
               {/* Sets Table - LBS UNITS ONLY */}
               <div className="space-y-2">
-                <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-[var(--muted-foreground)] px-2 uppercase tracking-wider">
+                <div
+                  className={`grid gap-2 text-[11px] font-bold text-[var(--muted-foreground)] px-2 uppercase tracking-wider ${
+                    isPlateLoaded ? "grid-cols-12" : "grid-cols-10"
+                  }`}
+                >
                   <div className="col-span-1 text-center">Set</div>
-                  <div className="col-span-3 text-center truncate" title={isPlateLoaded ? (isBarbell ? "Plates per side (-45 bar)" : "Plates per side") : "Previous"}>
-                    {isPlateLoaded ? "Plates/Side" : "Previous"}
-                  </div>
-                  <div className="col-span-3 text-center flex flex-col items-center">
+                  {isPlateLoaded && (
+                    <div
+                      className="col-span-3 text-center truncate"
+                      title={isBarbell ? "Plates per side (-45 bar)" : "Plates per side"}
+                    >
+                      Plates/Side
+                    </div>
+                  )}
+                  <div
+                    className={`${
+                      isPlateLoaded ? "col-span-3" : "col-span-4"
+                    } text-center flex flex-col items-center`}
+                  >
                     <span>{unit.toUpperCase()}</span>
                     {beatTarget && beatTarget.maxWeight > 0 && (
-                      <span className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal flex items-center gap-0.5" title={`Current highest weight to beat: ${beatTarget.maxWeight} ${unit}`}>
+                      <span
+                        className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal flex items-center gap-0.5"
+                        title={`Current highest weight to beat: ${beatTarget.maxWeight} ${unit}`}
+                      >
                         <Flame className="w-2.5 h-2.5 text-[var(--accent)] inline" />
                         Beat: {beatTarget.maxWeight}
                       </span>
                     )}
                   </div>
-                  <div className="col-span-3 text-center flex flex-col items-center">
+                  <div
+                    className={`${
+                      isPlateLoaded ? "col-span-3" : "col-span-3"
+                    } text-center flex flex-col items-center`}
+                  >
                     <span>Reps</span>
                     {beatTarget && beatTarget.maxReps > 0 && (
-                      <span className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal flex items-center gap-0.5" title={`Current highest reps to beat: ${beatTarget.maxReps} reps`}>
+                      <span
+                        className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal flex items-center gap-0.5"
+                        title={`Current highest reps to beat: ${beatTarget.maxReps} reps`}
+                      >
                         <Target className="w-2.5 h-2.5 text-[var(--accent)] inline" />
                         Beat: {beatTarget.maxReps}
                       </span>
@@ -569,7 +592,7 @@ export function ActiveWorkoutView({
                     ? (currentW > 0
                         ? formatPlateBreakdown(currentW, isBarbell)
                         : (prevSet?.weight ? formatPlateBreakdown(prevSet.weight, isBarbell) : "—"))
-                    : (prevSet ? `${prevSet.weight} ${unit} × ${prevSet.reps}` : "—");
+                    : "";
 
                   return (
                     <div
@@ -580,20 +603,26 @@ export function ActiveWorkoutView({
                           : "bg-[var(--background)] border-[var(--border)] hover:border-[var(--muted-foreground)]"
                       }`}
                     >
-                      <div className="grid grid-cols-12 gap-2 items-center">
+                      <div
+                        className={`grid gap-2 items-center ${
+                          isPlateLoaded ? "grid-cols-12" : "grid-cols-10"
+                        }`}
+                      >
                         <div className="col-span-1 text-center font-bold text-sm text-[var(--foreground)]">
                           {set.setNumber}
                         </div>
 
-                        <div
-                          className="col-span-3 text-[11px] font-mono text-[var(--accent)] font-semibold text-center truncate"
-                          title={plateDisplay}
-                        >
-                          {plateDisplay}
-                        </div>
+                        {isPlateLoaded && (
+                          <div
+                            className="col-span-3 text-[11px] font-mono text-[var(--accent)] font-semibold text-center truncate"
+                            title={plateDisplay}
+                          >
+                            {plateDisplay}
+                          </div>
+                        )}
 
                         {/* Weight */}
-                        <div className="col-span-3 relative">
+                        <div className={`${isPlateLoaded ? "col-span-3" : "col-span-4"} relative`}>
                           <input
                             type="number"
                             step="0.5"
