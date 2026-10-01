@@ -16,7 +16,7 @@ import {
   Target,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import { formatTime } from "@/lib/utils";
+import { formatTime, formatPlateBreakdown } from "@/lib/utils";
 import { RestTimer } from "./RestTimer";
 import { CorgiLogo } from "./CorgiLogo";
 import { CardioSection } from "./CardioSection";
@@ -451,13 +451,21 @@ export function ActiveWorkoutView({
           }
           const beatTarget = { maxWeight: maxW, maxReps: maxR };
 
-          const isPlateLoaded =
-            exercise?.category === "Smith Machine" ||
+          const isBarbell =
             exercise?.category === "Barbell" ||
-            exercise?.name?.toLowerCase().includes("smith") ||
             exercise?.name?.toLowerCase().includes("barbell") ||
+            (exercise?.equipment?.toLowerCase().includes("barbell") && !exercise?.name?.toLowerCase().includes("smith"));
+
+          const isPlateLoaded =
+            isBarbell ||
+            exercise?.category === "Smith Machine" ||
+            exercise?.name?.toLowerCase().includes("smith") ||
+            exercise?.name?.toLowerCase().includes("leg press") ||
+            exercise?.name?.toLowerCase().includes("hack squat") ||
+            exercise?.name?.toLowerCase().includes("calf raise") ||
             exercise?.equipment?.toLowerCase().includes("smith") ||
-            exercise?.equipment?.toLowerCase().includes("barbell");
+            exercise?.equipment?.toLowerCase().includes("leg press") ||
+            exercise?.equipment?.toLowerCase().includes("plate loaded");
 
           return (
             <div
@@ -525,7 +533,9 @@ export function ActiveWorkoutView({
               <div className="space-y-2">
                 <div className="grid grid-cols-12 gap-2 text-[11px] font-bold text-[var(--muted-foreground)] px-2 uppercase tracking-wider">
                   <div className="col-span-1 text-center">Set</div>
-                  <div className="col-span-3">Previous</div>
+                  <div className="col-span-3 text-center truncate" title={isPlateLoaded ? (isBarbell ? "Plates per side (-45 bar)" : "Plates per side") : "Previous"}>
+                    {isPlateLoaded ? "Plates/Side" : "Previous"}
+                  </div>
                   <div className="col-span-3 text-center flex flex-col items-center">
                     <span>{unit.toUpperCase()}</span>
                     {beatTarget && beatTarget.maxWeight > 0 && (
@@ -549,14 +559,17 @@ export function ActiveWorkoutView({
 
                 {sets.map((set, sIdx) => {
                   const prevSet = prevHistory[sIdx];
-                  const prevText = prevSet
-                    ? `${prevSet.weight} ${unit} × ${prevSet.reps}`
-                    : "—";
-
                   const currentW = parseFloat(set.weight) || 0;
                   const currentR = parseInt(set.reps, 10) || 0;
                   const beatsWeight = beatTarget && beatTarget.maxWeight > 0 && currentW > beatTarget.maxWeight;
                   const beatsReps = beatTarget && beatTarget.maxReps > 0 && currentR > beatTarget.maxReps;
+
+                  // Plate breakdown per side (subtracting 45lbs for barbell)
+                  const plateDisplay = isPlateLoaded
+                    ? (currentW > 0
+                        ? formatPlateBreakdown(currentW, isBarbell)
+                        : (prevSet?.weight ? formatPlateBreakdown(prevSet.weight, isBarbell) : "—"))
+                    : (prevSet ? `${prevSet.weight} ${unit} × ${prevSet.reps}` : "—");
 
                   return (
                     <div
@@ -572,8 +585,11 @@ export function ActiveWorkoutView({
                           {set.setNumber}
                         </div>
 
-                        <div className="col-span-3 text-xs font-mono text-[var(--muted-foreground)] truncate">
-                          {prevText}
+                        <div
+                          className="col-span-3 text-[11px] font-mono text-[var(--accent)] font-semibold text-center truncate"
+                          title={plateDisplay}
+                        >
+                          {plateDisplay}
                         </div>
 
                         {/* Weight */}
