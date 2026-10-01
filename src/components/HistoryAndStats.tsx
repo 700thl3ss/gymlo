@@ -12,6 +12,11 @@ import {
   TrendingUp,
   Award,
   Trash2,
+  Settings2,
+  X,
+  Check,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { WorkoutCalendar } from "./WorkoutCalendar";
@@ -23,6 +28,20 @@ export function HistoryAndStats({ unit = "lbs" }: { unit?: "lbs" | "kg" } = {}) 
   const [loading, setLoading] = useState(true);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
   const [historyView, setHistoryView] = useState<"calendar" | "list">("calendar");
+
+  // Customize PR Showcase state
+  const [isEditingPrs, setIsEditingPrs] = useState(false);
+  const [hiddenPrExercises, setHiddenPrExercises] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("gymlo_hidden_prs");
+        return saved ? JSON.parse(saved) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
 
   const fetchData = async () => {
     try {
@@ -182,53 +201,127 @@ export function HistoryAndStats({ unit = "lbs" }: { unit?: "lbs" | "kg" } = {}) 
 
       {/* Personal Records Showcase */}
       {records.length > 0 && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
-          <div className="flex items-center space-x-2 mb-4">
-            <Trophy className="w-5 h-5 text-[var(--accent)]" />
-            <h3 className="font-bold text-base text-[var(--foreground)]">Personal Records (PRs)</h3>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Trophy className="w-5 h-5 text-[var(--accent)]" />
+              <h3 className="font-bold text-base text-[var(--foreground)]">Personal Records (PRs)</h3>
+              <span className="text-xs font-mono text-[var(--muted-foreground)]">
+                ({records.filter((g: any) => !hiddenPrExercises.includes(g.exerciseName)).length}/{records.length})
+              </span>
+            </div>
+
+            <button
+              onClick={() => setIsEditingPrs(!isEditingPrs)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center space-x-1.5 ${
+                isEditingPrs
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)] border-transparent"
+                  : "bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border-[var(--border)]"
+              }`}
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>{isEditingPrs ? "Done Editing" : "Customize"}</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {records.map((group: any) => {
-              const best1RM = group.records.find((r: any) => r.recordType === "ESTIMATED_1RM");
-              const maxWeight = group.records.find((r: any) => r.recordType === "MAX_WEIGHT");
-
-              return (
-                <div
-                  key={group.exerciseName}
-                  className="bg-[var(--background)] border border-[var(--border)] hover:border-[var(--accent)] rounded-xl p-3.5 space-y-2 transition-colors"
+          {/* Quick Selection Guide when editing */}
+          {isEditingPrs && (
+            <div className="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs flex items-center justify-between gap-2">
+              <span className="text-[var(--muted-foreground)]">
+                Tap the eye icon on any exercise card to show or hide it from your PR showcase.
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    setHiddenPrExercises([]);
+                    try {
+                      localStorage.removeItem("gymlo_hidden_prs");
+                    } catch (e) {}
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-[var(--secondary)] text-[var(--foreground)] font-semibold hover:border-[var(--accent)] border border-[var(--border)] text-[11px]"
                 >
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-[var(--foreground)] truncate max-w-[150px]">
-                      {group.exerciseName}
-                    </h4>
-                    <span className="text-[10px] font-semibold text-[var(--foreground)] bg-[var(--secondary)] px-1.5 py-0.5 rounded border border-[var(--border)]">
-                      {group.primaryMuscle}
-                    </span>
-                  </div>
+                  Show All
+                </button>
+              </div>
+            </div>
+          )}
 
-                  <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
-                    <div>
-                      <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
-                        Est 1RM
-                      </span>
-                      <span className="text-sm font-mono font-black text-[var(--accent)]">
-                        {best1RM ? `${best1RM.value} ${unit}` : "—"}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {records
+              .filter((group: any) => isEditingPrs || !hiddenPrExercises.includes(group.exerciseName))
+              .map((group: any) => {
+                const isHidden = hiddenPrExercises.includes(group.exerciseName);
+                const best1RM = group.records.find((r: any) => r.recordType === "ESTIMATED_1RM");
+                const maxWeight = group.records.find((r: any) => r.recordType === "MAX_WEIGHT");
+
+                const toggleVisibility = () => {
+                  let updated: string[];
+                  if (isHidden) {
+                    updated = hiddenPrExercises.filter((name) => name !== group.exerciseName);
+                  } else {
+                    updated = [...hiddenPrExercises, group.exerciseName];
+                  }
+                  setHiddenPrExercises(updated);
+                  try {
+                    localStorage.setItem("gymlo_hidden_prs", JSON.stringify(updated));
+                  } catch (e) {}
+                };
+
+                return (
+                  <div
+                    key={group.exerciseName}
+                    className={`bg-[var(--background)] border rounded-xl p-3.5 space-y-2 transition-all ${
+                      isHidden
+                        ? "opacity-40 border-dashed border-[var(--border)]"
+                        : "border-[var(--border)] hover:border-[var(--accent)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {isEditingPrs && (
+                          <button
+                            onClick={toggleVisibility}
+                            className={`p-1 rounded-md transition-colors ${
+                              isHidden
+                                ? "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                                : "text-[var(--accent)] bg-[var(--secondary)]"
+                            }`}
+                            title={isHidden ? "Click to show" : "Click to hide"}
+                          >
+                            {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                        <h4 className="text-xs font-bold text-[var(--foreground)] truncate max-w-[140px]">
+                          {group.exerciseName}
+                        </h4>
+                      </div>
+                      <span className="text-[10px] font-semibold text-[var(--foreground)] bg-[var(--secondary)] px-1.5 py-0.5 rounded border border-[var(--border)] shrink-0">
+                        {group.primaryMuscle}
                       </span>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
-                        Heaviest
-                      </span>
-                      <span className="text-sm font-mono font-bold text-[var(--foreground)]">
-                        {maxWeight ? `${maxWeight.value} ${unit}` : "—"}
-                      </span>
+                    <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
+                      <div>
+                        <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
+                          Est 1RM
+                        </span>
+                        <span className="text-sm font-mono font-black text-[var(--accent)]">
+                          {best1RM ? `${best1RM.value} ${unit}` : "—"}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
+                          Heaviest
+                        </span>
+                        <span className="text-sm font-mono font-bold text-[var(--foreground)]">
+                          {maxWeight ? `${maxWeight.value} ${unit}` : "—"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       )}
