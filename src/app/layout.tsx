@@ -15,6 +15,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Gymlo",
   description: "Workout and routine tracking app.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Gymlo",
+  },
+  icons: {
+    apple: "/corgi-icon.svg",
+    icon: "/corgi-icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
