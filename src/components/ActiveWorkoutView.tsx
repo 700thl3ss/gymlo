@@ -551,13 +551,12 @@ export function ActiveWorkoutView({
                     } text-center flex flex-col items-center`}
                   >
                     <span>{unit.toUpperCase()}</span>
-                    {beatTarget && beatTarget.maxWeight > 0 && (
+                    {prevHistory.length > 0 && prevHistory[0]?.weight > 0 && (
                       <span
-                        className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal flex items-center gap-0.5"
-                        title={`Current highest weight to beat: ${beatTarget.maxWeight} ${unit}`}
+                        className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal"
+                        title={`Last session weight: ${prevHistory[0].weight} ${unit}`}
                       >
-                        <Flame className="w-2.5 h-2.5 text-[var(--accent)] inline" />
-                        Beat: {beatTarget.maxWeight}
+                        Prev: {prevHistory[0].weight}
                       </span>
                     )}
                   </div>
@@ -567,13 +566,12 @@ export function ActiveWorkoutView({
                     } text-center flex flex-col items-center`}
                   >
                     <span>Reps</span>
-                    {beatTarget && beatTarget.maxReps > 0 && (
+                    {prevHistory.length > 0 && prevHistory[0]?.reps > 0 && (
                       <span
-                        className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal flex items-center gap-0.5"
-                        title={`Current highest reps to beat: ${beatTarget.maxReps} reps`}
+                        className="text-[9px] font-semibold text-[var(--accent)] normal-case tracking-normal"
+                        title={`Last session reps: ${prevHistory[0].reps} reps`}
                       >
-                        <Target className="w-2.5 h-2.5 text-[var(--accent)] inline" />
-                        Beat: {beatTarget.maxReps}
+                        Prev: {prevHistory[0].reps}
                       </span>
                     )}
                   </div>
@@ -634,7 +632,7 @@ export function ActiveWorkoutView({
                             onChange={(e) =>
                               handleSetChange(set.id, "weight", e.target.value)
                             }
-                            placeholder={beatTarget?.maxWeight ? `> ${beatTarget.maxWeight}` : unit}
+                            placeholder={prevSet?.weight ? `${prevSet.weight}` : unit}
                             className={`w-full text-center text-sm font-semibold font-mono bg-[var(--card)] border rounded-lg py-1.5 focus:outline-none text-[var(--foreground)] transition-colors ${
                               beatsWeight
                                 ? "border-amber-500/80 ring-1 ring-amber-500/50"
@@ -662,7 +660,7 @@ export function ActiveWorkoutView({
                             onChange={(e) =>
                               handleSetChange(set.id, "reps", e.target.value)
                             }
-                            placeholder={beatTarget?.maxReps ? `> ${beatTarget.maxReps}` : "0"}
+                            placeholder={prevSet?.reps ? `${prevSet.reps}` : "0"}
                             className={`w-full text-center text-sm font-semibold font-mono bg-[var(--card)] border rounded-lg py-1.5 focus:outline-none text-[var(--foreground)] transition-colors ${
                               beatsReps
                                 ? "border-amber-500/80 ring-1 ring-amber-500/50"
