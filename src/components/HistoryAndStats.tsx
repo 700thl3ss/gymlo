@@ -165,39 +165,6 @@ export function HistoryAndStats({ unit = "lbs" }: { unit?: "lbs" | "kg" } = {}) 
         </div>
       </div>
 
-      {/* Volume Progression Chart */}
-      {chartData.length > 0 && (
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-[var(--accent)]" />
-              <h3 className="font-bold text-sm text-[var(--foreground)]">Volume History ({unit} per session)</h3>
-            </div>
-            <span className="text-xs text-[var(--muted-foreground)] font-mono">Last {chartData.length} sessions</span>
-          </div>
-
-          <div className="h-40 flex items-end gap-2 pt-4 px-2">
-            {chartData.slice(-14).map((item: any, i: number) => {
-              const heightPct = Math.max(12, Math.round((item.volume / maxVolume) * 100));
-              return (
-                <div key={item.id || i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-12 bg-[var(--secondary)] text-[var(--foreground)] text-[10px] font-mono p-1.5 rounded border border-[var(--border)] pointer-events-none whitespace-nowrap z-20">
-                    {item.name}: {item.volume} {unit} ({item.durationMinutes}m)
-                  </div>
-
-                  <div
-                    style={{ height: `${heightPct}%` }}
-                    className="w-full max-w-[28px] rounded-t bg-[var(--accent)] hover:opacity-80 transition-colors"
-                  />
-                  <span className="text-[9px] font-mono text-[var(--muted-foreground)] truncate max-w-[36px]">
-                    {item.date ? item.date.slice(5) : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Personal Records Showcase */}
       {records.length > 0 && (
