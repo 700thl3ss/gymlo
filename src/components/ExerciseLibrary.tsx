@@ -86,6 +86,7 @@ export function ExerciseLibrary() {
     "Glutes",
     "Biceps",
     "Triceps",
+    "Forearms",
     "Core",
     "Calves",
   ];
