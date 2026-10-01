@@ -6,9 +6,10 @@ import { Plus, Play, Trash2, Dumbbell, X, Layers, Search, Pencil, GripVertical }
 interface RoutineManagerProps {
   onStartRoutine: (routineId: string) => void;
   onStartQuickWorkout: () => void;
+  onRoutinesChanged?: () => void;
 }
 
-export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineManagerProps) {
+export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutinesChanged }: RoutineManagerProps) {
   const [routines, setRoutines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -274,6 +275,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
           setRoutineDesc("");
           setSelectedExercises([]);
           fetchRoutines();
+          onRoutinesChanged?.();
         }
       } else {
         // Create new routine
@@ -293,6 +295,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
           setRoutineDesc("");
           setSelectedExercises([]);
           fetchRoutines();
+          onRoutinesChanged?.();
         }
       }
     } catch (err) {
@@ -309,6 +312,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
       const data = await res.json();
       if (data.success) {
         setRoutines(routines.filter((r) => r.id !== id));
+        onRoutinesChanged?.();
       }
     } catch (err) {
       console.error(err);
@@ -396,13 +400,17 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
                   setRoutineDragIndex(null);
                   setRoutineDropIndex(null);
                   // Persist order: PATCH each routine with new orderIndex
-                  reordered.forEach((r, i) => {
-                    fetch(`/api/routines/${r.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ orderIndex: i }),
-                    }).catch(console.error);
-                  });
+                  Promise.all(
+                    reordered.map((r, i) =>
+                      fetch(`/api/routines/${r.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ orderIndex: i }),
+                      })
+                    )
+                  )
+                    .then(() => onRoutinesChanged?.())
+                    .catch(console.error);
                 }}
                 onDragEnd={() => {
                   setRoutineDragIndex(null);

@@ -262,6 +262,7 @@ export default function Home() {
           <RoutineManager
             onStartRoutine={startRoutineWorkout}
             onStartQuickWorkout={startQuickWorkout}
+            onRoutinesChanged={fetchRoutines}
           />
         )}
 

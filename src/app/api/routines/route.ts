@@ -14,9 +14,10 @@ export async function GET() {
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [
+        { orderIndex: "asc" },
+        { createdAt: "asc" },
+      ],
     });
 
     return NextResponse.json({ success: true, routines });
