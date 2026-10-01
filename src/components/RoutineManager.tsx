@@ -472,7 +472,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
                           key={re.id}
                           className="text-[11px] font-medium bg-[var(--secondary)] text-[var(--foreground)] px-2 py-0.5 rounded border border-[var(--border)]"
                         >
-                          {re.exercise?.name} ({re.targetSets}×{re.targetReps || "—"})
+                          {re.exercise?.name} ({re.targetSets} sets)
                         </span>
                       ))}
                       {(routine.exercises?.length || 0) > 5 && (
@@ -665,30 +665,11 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
                                 className="w-12 text-center bg-[var(--card)] border border-[var(--border)] rounded py-1 text-[var(--foreground)] font-mono focus:outline-none focus:border-[var(--accent)]"
                                 title="Target sets"
                               />
-                              <span className="text-[var(--muted-foreground)]">sets ×</span>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={item.targetReps === undefined ? "" : item.targetReps}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/[^0-9]/g, "");
-                                  setSelectedExercises(
-                                    selectedExercises.map((ex) =>
-                                      ex.exerciseId === item.exerciseId
-                                        ? { ...ex, targetReps: val }
-                                        : ex
-                                    )
-                                  );
-                                }}
-                                placeholder="Reps"
-                                className="w-16 text-center bg-[var(--card)] border border-[var(--border)] rounded py-1 text-[var(--foreground)] font-mono focus:outline-none focus:border-[var(--accent)]"
-                                title="Target reps"
-                              />
+                              <span className="text-[var(--muted-foreground)]">sets</span>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveExerciseFromRoutine(item.exerciseId)}
-                                className="text-[var(--muted-foreground)] hover:text-red-500 p-1"
+                                className="text-[var(--muted-foreground)] hover:text-red-500 p-1 ml-1"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
