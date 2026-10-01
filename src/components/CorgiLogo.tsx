@@ -1,0 +1,77 @@
+import React from "react";
+
+interface CorgiLogoProps {
+  className?: string;
+  size?: number;
+}
+
+export function CorgiLogo({ className = "w-6 h-6", size = 28 }: CorgiLogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-label="Corgi lifting barbell"
+    >
+      {/* --- BARBELL WITH PLATES --- */}
+      {/* Barbell Bar */}
+      <rect x="4" y="10" width="56" height="3" rx="1.5" />
+
+      {/* Left Plates */}
+      <rect x="7" y="2" width="3.5" height="19" rx="1.5" />
+      <rect x="11.5" y="4" width="3" height="15" rx="1" />
+      <rect x="15.5" y="6" width="2" height="11" rx="0.5" />
+
+      {/* Right Plates */}
+      <rect x="46.5" y="6" width="2" height="11" rx="0.5" />
+      <rect x="49.5" y="4" width="3" height="15" rx="1" />
+      <rect x="53.5" y="2" width="3.5" height="19" rx="1.5" />
+
+      {/* Left & Right Paws holding the bar */}
+      <path d="M22 10 C22 8, 26 8, 26 10 L26 13 C26 14, 22 14, 22 13 Z" />
+      <path d="M38 10 C38 8, 42 8, 42 10 L42 13 C42 14, 38 14, 38 13 Z" />
+
+      {/* --- CORGI SILHOUETTE --- */}
+      {/* Corgi Head, Signature Pointed Ears, Snout, and Muscular Body */}
+      <path
+        d="
+          M 24 13
+          L 23 18
+          L 19 13
+          C 17 10, 16 14, 18 19
+          L 21 26
+          C 20 28, 17 29, 17 31
+          C 17 33, 21 34, 25 33
+          L 25 36
+          C 24 40, 23 46, 23 52
+          L 20 54
+          C 19 55, 19 57, 21 57
+          L 27 57
+          C 29 57, 29 55, 28 52
+          L 28 44
+          L 36 44
+          L 36 52
+          C 35 55, 35 57, 37 57
+          L 43 57
+          C 45 57, 45 55, 44 54
+          L 41 52
+          C 41 46, 40 40, 39 36
+          L 39 33
+          C 43 34, 47 33, 47 31
+          C 47 29, 44 28, 43 26
+          L 46 19
+          C 48 14, 47 10, 45 13
+          L 41 18
+          L 40 13
+          Z
+        "
+      />
+      {/* Forearms lifting up to the bar */}
+      <path d="M24 12 L24 20 L28 22 L27 12 Z" />
+      <path d="M40 12 L40 20 L36 22 L37 12 Z" />
+    </svg>
+  );
+}

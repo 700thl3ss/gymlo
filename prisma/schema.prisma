@@ -1,0 +1,143 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String   @default("Athlete")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workouts        WorkoutSession[]
+  routines        Routine[]
+  personalRecords PersonalRecord[]
+  customExercises Exercise[]
+  cardioSessions  CardioSession[]
+}
+
+model Exercise {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  category         String   // Barbell, Dumbbell, Machine, Cable, Bodyweight, etc.
+  primaryMuscle    String   // Chest, Back, Shoulders, Quads, Hamstrings, Glutes, Biceps, Triceps, Core, Calves
+  secondaryMuscles String?  // comma-separated
+  equipment        String?  // Barbell, Dumbbells, Cable Machine, Bodyweight, etc.
+  instructions     String?
+  isCustom         Boolean  @default(false)
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  workoutSets      WorkoutSet[]
+  routineExercises RoutineExercise[]
+  personalRecords  PersonalRecord[]
+}
+
+model Routine {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exercises RoutineExercise[]
+  sessions  WorkoutSession[]
+}
+
+model RoutineExercise {
+  id         String   @id @default(cuid())
+  routineId  String
+  routine    Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  orderIndex Int      @default(0)
+  targetSets Int      @default(2)
+  targetReps String   @default("8-12")
+  notes      String?
+
+  @@index([routineId])
+}
+
+model WorkoutSession {
+  id              String       @id @default(cuid())
+  name            String
+  routineId       String?
+  routine         Routine?     @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt       DateTime     @default(now())
+  completedAt     DateTime?
+  durationSeconds Int          @default(0)
+  notes           String?
+  createdAt       DateTime     @default(now())
+
+  sets           WorkoutSet[]
+  cardioSessions CardioSession[]
+}
+
+model WorkoutSet {
+  id               String         @id @default(cuid())
+  workoutSessionId String
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exerciseId       String
+  exercise         Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  setNumber        Int
+  setType          String         @default("NORMAL") // WARMUP, NORMAL, DROPSET, FAILURE
+  weight           Float          @default(0)
+  reps             Int            @default(0)
+  rpe              Float?
+  isCompleted      Boolean        @default(false)
+  completedAt      DateTime?
+  notes            String?
+
+  personalRecords  PersonalRecord[]
+
+  @@index([workoutSessionId])
+  @@index([exerciseId])
+}
+
+model PersonalRecord {
+  id           String      @id @default(cuid())
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId   String
+  exercise     Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  recordType   String      // ESTIMATED_1RM, MAX_WEIGHT, MAX_VOLUME
+  value        Float
+  workoutSetId String?
+  workoutSet   WorkoutSet? @relation(fields: [workoutSetId], references: [id], onDelete: SetNull)
+  achievedAt   DateTime    @default(now())
+
+  @@index([exerciseId])
+  @@index([userId])
+}
+
+model CardioSession {
+  id               String          @id @default(cuid())
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutSessionId String?
+  workoutSession   WorkoutSession? @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  activityType     String          // walk, run, jog, cycle, swim
+  durationMinutes  Int             @default(0) // time in minutes (or duration in seconds converted)
+  durationSeconds  Int             @default(0) // exact seconds
+  distance         Float           @default(0) // e.g. miles or km
+  distanceUnit     String          @default("miles") // miles or km
+  intensity        String          @default("Moderate") // Low, Moderate, High, HIIT
+  notes            String?
+  startedAt        DateTime        @default(now())
+  completedAt      DateTime?
+  createdAt        DateTime        @default(now())
+
+  @@index([workoutSessionId])
+  @@index([userId])
+}
