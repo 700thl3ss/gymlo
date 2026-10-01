@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "Gymlo",
   },
   icons: {
-    apple: "/corgi-icon.svg",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     icon: "/corgi-icon.svg",
   },
 };
@@ -32,6 +32,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

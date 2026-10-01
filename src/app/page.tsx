@@ -249,42 +249,6 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-
-                {/* Quick Navigation Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div
-                    onClick={() => setActiveTab("exercises")}
-                    className="bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] p-4 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 rounded-lg bg-[var(--secondary)] text-[var(--accent)]">
-                        <Dumbbell className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-[var(--foreground)]">Exercise Directory</h4>
-                        <p className="text-xs text-[var(--muted-foreground)]">Browse 80+ lifts, Smith Machine & gym machines</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
-                  </div>
-
-                  <div
-                    onClick={() => setActiveTab("history")}
-                    className="bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] p-4 rounded-xl cursor-pointer transition-colors flex items-center justify-between"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 rounded-lg bg-[var(--secondary)] text-[var(--accent)]">
-                        <Sparkles className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-[var(--foreground)]">PRs & Performance</h4>
-                        <p className="text-xs text-[var(--muted-foreground)]">Track volume in lbs and estimated 1RMs</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
-                  </div>
-                </div>
-
                 {/* Cardio Section on Workout Dashboard */}
                 <div className="pt-2">
                   <CardioSection />

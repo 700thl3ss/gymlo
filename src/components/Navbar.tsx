@@ -49,19 +49,19 @@ export function Navbar({
 
   return (
     <>
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--background)]">
+      {/* Top Header — fills safe area so nothing shows behind it on iPhone */}
+      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--background)] header-safe">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo & Brand Name */}
           <div
             className="flex items-center space-x-3 cursor-pointer select-none"
             onClick={() => setActiveTab("workout")}
           >
-            <div className="h-10 w-10 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center border border-[var(--border)]">
-              <CorgiLogo size={26} className="text-[var(--accent-foreground)]" />
+            <div className="h-11 w-11 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center border border-[var(--border)]">
+              <CorgiLogo size={28} className="text-[var(--accent-foreground)]" />
             </div>
             <div>
-              <span className="text-xl font-black tracking-wider text-[var(--foreground)]">
+              <span className="text-2xl font-black tracking-wider text-[var(--foreground)]">
                 GYMLO
               </span>
             </div>
@@ -101,14 +101,14 @@ export function Navbar({
               className="p-2.5 rounded-xl bg-[var(--card)] hover:bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] transition-colors"
               title="Settings & Themes"
             >
-              <SettingsIcon className="w-4 h-4" />
+              <SettingsIcon className="w-5 h-5" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--background)] border-t border-[var(--border)] pb-safe">
+      {/* Mobile Bottom Navigation Bar — respects iPhone home indicator */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--background)] border-t border-[var(--border)] bottom-nav-safe">
         <div className="grid grid-cols-4 h-16">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -122,12 +122,12 @@ export function Navbar({
                 }`}
               >
                 <div className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? "text-[var(--accent)] stroke-[2.5]" : "stroke-[1.75]"}`} />
+                  <Icon className={`w-6 h-6 ${isActive ? "text-[var(--accent)] stroke-[2.5]" : "stroke-[1.75]"}`} />
                   {tab.badge && (
                     <span className="absolute -top-1 -right-2 w-2 h-2 bg-[var(--accent)] rounded-full" />
                   )}
                 </div>
-                <span className="text-[11px] font-semibold mt-1">{tab.label.split(" ")[0]}</span>
+                <span className="text-[12px] font-semibold mt-1">{tab.label.split(" ")[0]}</span>
                 {isActive && (
                   <div className="absolute bottom-0 w-8 h-0.5 bg-[var(--accent)] rounded-t-full" />
                 )}
@@ -136,6 +136,7 @@ export function Navbar({
           })}
         </div>
       </nav>
+
 
       {/* Settings Dialog */}
       <SettingsModal

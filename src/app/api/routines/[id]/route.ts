@@ -61,6 +61,7 @@ export async function PATCH(
     const updateData: any = {};
     if (typeof name === "string") updateData.name = name.trim();
     if (typeof description === "string") updateData.description = description.trim();
+    if (typeof body.orderIndex === "number") updateData.orderIndex = body.orderIndex;
 
     // If updated exercises array provided, replace existing routine exercises
     if (Array.isArray(exercises)) {

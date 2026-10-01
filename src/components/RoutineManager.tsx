@@ -20,9 +20,15 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
   const [selectedExercises, setSelectedExercises] = useState<
-    Array<{ exerciseId: string; exerciseName: string; targetSets: number; targetReps: string }>
+    Array<{ exerciseId: string; exerciseName: string; targetSets: number; targetReps: string; notes?: string }>
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Editing an exercise note inline (routine exercise tab)
+  const [editingExNoteId, setEditingExNoteId] = useState<string | null>(null);
+
+  // Routine-level drag-to-reorder state
+  const [routineDragIndex, setRoutineDragIndex] = useState<number | null>(null);
+  const [routineDropIndex, setRoutineDropIndex] = useState<number | null>(null);
 
   // Custom Exercise State inside Routine Modal
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -58,7 +64,8 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
             exerciseId: newEx.id,
             exerciseName: newEx.name,
             targetSets: 2,
-            targetReps: "10",
+            targetReps: "",
+            notes: "",
           },
         ]);
         setCustomName("");
@@ -122,7 +129,8 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
         exerciseId: re.exerciseId || re.exercise?.id,
         exerciseName: re.exercise?.name || "Exercise",
         targetSets: re.targetSets || 2,
-        targetReps: re.targetReps ? (re.targetReps.match(/\d+/) ? re.targetReps.match(/\d+/)[0] : "10") : "10",
+        targetReps: re.targetReps ? (re.targetReps.match(/\d+/) ? re.targetReps.match(/\d+/)[0] : "") : "",
+        notes: re.notes || "",
       }))
     );
     setExerciseSearch("");
@@ -133,7 +141,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
     if (selectedExercises.some((item) => item.exerciseId === ex.id)) return;
     setSelectedExercises([
       ...selectedExercises,
-      { exerciseId: ex.id, exerciseName: ex.name, targetSets: 2, targetReps: "10" },
+      { exerciseId: ex.id, exerciseName: ex.name, targetSets: 2, targetReps: "", notes: "" },
     ]);
   };
 
@@ -364,72 +372,115 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {routines.map((routine) => (
-            <div
-              key={routine.id}
-              className="bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] rounded-2xl p-5 flex flex-col justify-between transition-colors group"
-            >
-              {/* Clickable Card Header & Details */}
+          {routines.map((routine, rIdx) => {
+            const isDragging = routineDragIndex === rIdx;
+            const isDropTarget = routineDropIndex === rIdx && routineDragIndex !== rIdx;
+            return (
               <div
-                onClick={() => openEditRoutine(routine)}
-                className="cursor-pointer"
-                title="Click to edit name and workouts"
+                key={routine.id}
+                draggable
+                onDragStart={(e) => {
+                  setRoutineDragIndex(rIdx);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setRoutineDropIndex(rIdx);
+                }}
+                onDrop={() => {
+                  if (routineDragIndex === null || routineDragIndex === rIdx) return;
+                  const reordered = [...routines];
+                  const [moved] = reordered.splice(routineDragIndex, 1);
+                  reordered.splice(rIdx, 0, moved);
+                  setRoutines(reordered);
+                  setRoutineDragIndex(null);
+                  setRoutineDropIndex(null);
+                  // Persist order: PATCH each routine with new orderIndex
+                  reordered.forEach((r, i) => {
+                    fetch(`/api/routines/${r.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ orderIndex: i }),
+                    }).catch(console.error);
+                  });
+                }}
+                onDragEnd={() => {
+                  setRoutineDragIndex(null);
+                  setRoutineDropIndex(null);
+                }}
+                className={`bg-[var(--card)] border rounded-2xl p-5 flex flex-col justify-between transition-all ${
+                  isDragging
+                    ? "opacity-40 scale-95 border-[var(--accent)]"
+                    : isDropTarget
+                    ? "border-[var(--accent)] border-dashed shadow-lg"
+                    : "border-[var(--border)] hover:border-[var(--accent)]"
+                }`}
               >
-                <div className="flex items-start justify-between">
-                  <h3 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
-                    {routine.name}
-                  </h3>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteRoutine(routine.id);
-                    }}
-                    className="text-[var(--muted-foreground)] hover:text-red-500 p-1 rounded-lg transition-colors"
-                    title="Delete routine"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {/* Grip + Card Header */}
+                <div
+                  onClick={() => openEditRoutine(routine)}
+                  className="cursor-pointer"
+                  title="Tap to edit"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <GripVertical className="w-4 h-4 text-[var(--muted-foreground)] shrink-0 cursor-grab active:cursor-grabbing" />
+                      <h3 className="text-base font-bold text-[var(--foreground)] hover:text-[var(--accent)] transition-colors truncate">
+                        {routine.name}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRoutine(routine.id);
+                      }}
+                      className="text-[var(--muted-foreground)] hover:text-red-500 p-1 rounded-lg transition-colors ml-1"
+                      title="Delete routine"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
 
-                {routine.description && (
-                  <p className="text-xs text-[var(--muted-foreground)] mt-1.5 line-clamp-2">
-                    {routine.description}
-                  </p>
-                )}
+                  {routine.description && (
+                    <p className="text-xs text-[var(--muted-foreground)] mt-1.5 line-clamp-2 ml-6">
+                      {routine.description}
+                    </p>
+                  )}
 
-                {/* Exercises Preview */}
-                <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[var(--muted-foreground)]">
-                    {routine.exercises?.length || 0} Exercises:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {routine.exercises?.slice(0, 5).map((re: any) => (
-                      <span
-                        key={re.id}
-                        className="text-[11px] font-medium bg-[var(--secondary)] text-[var(--foreground)] px-2 py-0.5 rounded border border-[var(--border)]"
-                      >
-                        {re.exercise?.name} ({re.targetSets}×{re.targetReps})
-                      </span>
-                    ))}
-                    {(routine.exercises?.length || 0) > 5 && (
-                      <span className="text-[11px] font-semibold text-[var(--muted-foreground)] py-0.5 px-1">
-                        +{(routine.exercises?.length || 0) - 5} more
-                      </span>
-                    )}
+                  {/* Exercises Preview */}
+                  <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--muted-foreground)]">
+                      {routine.exercises?.length || 0} Exercises:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {routine.exercises?.slice(0, 5).map((re: any) => (
+                        <span
+                          key={re.id}
+                          className="text-[11px] font-medium bg-[var(--secondary)] text-[var(--foreground)] px-2 py-0.5 rounded border border-[var(--border)]"
+                        >
+                          {re.exercise?.name} ({re.targetSets}×{re.targetReps || "—"})
+                        </span>
+                      ))}
+                      {(routine.exercises?.length || 0) > 5 && (
+                        <span className="text-[11px] font-semibold text-[var(--muted-foreground)] py-0.5 px-1">
+                          +{(routine.exercises?.length || 0) - 5} more
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Start Routine Button */}
-              <button
-                onClick={() => onStartRoutine(routine.id)}
-                className="mt-5 w-full py-2.5 rounded-xl bg-[var(--secondary)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--foreground)] font-bold text-xs border border-[var(--border)] transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Start Routine</span>
-              </button>
-            </div>
-          ))}
+                {/* Start Routine Button */}
+                <button
+                  onClick={() => onStartRoutine(routine.id)}
+                  className="mt-5 w-full py-3 rounded-xl bg-[var(--secondary)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--foreground)] font-bold text-sm border border-[var(--border)] transition-colors flex items-center justify-center space-x-1.5"
+                >
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Start Routine</span>
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -537,10 +588,42 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
                               <span className="font-mono text-xs font-bold text-[var(--accent)] w-4 shrink-0">
                                 {idx + 1}.
                               </span>
-                              <span className="text-xs font-bold text-[var(--foreground)] truncate select-none" title={item.exerciseName}>
+                              <span
+                                className="text-xs font-bold text-[var(--foreground)] truncate select-none cursor-pointer hover:text-[var(--accent)] transition-colors"
+                                title="Tap to add/edit note for this exercise"
+                                onClick={() =>
+                                  setEditingExNoteId(
+                                    editingExNoteId === item.exerciseId ? null : item.exerciseId
+                                  )
+                                }
+                              >
                                 {item.exerciseName}
+                                <span className="ml-1 text-[var(--muted-foreground)] text-[10px]">
+                                  {item.notes ? "✏️" : "+ note"}
+                                </span>
                               </span>
                             </div>
+                            {/* Inline note editor */}
+                            {editingExNoteId === item.exerciseId && (
+                              <div className="mt-1.5 ml-5">
+                                <textarea
+                                  autoFocus
+                                  rows={2}
+                                  placeholder="Add a note for this exercise (e.g. weight, settings, cues)..."
+                                  value={item.notes || ""}
+                                  onChange={(e) =>
+                                    setSelectedExercises(
+                                      selectedExercises.map((ex) =>
+                                        ex.exerciseId === item.exerciseId
+                                          ? { ...ex, notes: e.target.value }
+                                          : ex
+                                      )
+                                    )
+                                  }
+                                  className="w-full bg-[var(--background)] border border-[var(--accent)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none resize-none"
+                                />
+                              </div>
+                            )}
                             <div className="flex items-center space-x-2 text-xs shrink-0">
                               <input
                                 type="number"
@@ -551,7 +634,9 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout }: RoutineM
                                 }}
                                 value={item.targetSets}
                                 onChange={(e) => {
-                                  const val = Math.max(1, parseInt(e.target.value) || 1);
+                                  const raw = e.target.value;
+                                  // Allow free typing — only clamp on blur
+                                  const val = raw === "" ? 2 : Math.max(1, parseInt(raw) || 1);
                                   setSelectedExercises(
                                     selectedExercises.map((ex) =>
                                       ex.exerciseId === item.exerciseId ? { ...ex, targetSets: val } : ex
