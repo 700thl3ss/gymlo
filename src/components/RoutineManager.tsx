@@ -21,7 +21,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
   const [selectedExercises, setSelectedExercises] = useState<
-    Array<{ exerciseId: string; exerciseName: string; targetSets: number; targetReps: string; notes?: string }>
+    Array<{ exerciseId: string; exerciseName: string; targetSets: number | string; targetReps: string; notes?: string }>
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Editing an exercise note inline (routine exercise tab)
@@ -256,6 +256,12 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
 
     setIsSubmitting(true);
     try {
+      const normalizedExercises = selectedExercises.map((item) => ({
+        ...item,
+        targetSets: parseInt(String(item.targetSets), 10) || 2,
+        targetReps: String(item.targetReps || ""),
+      }));
+
       if (editingRoutine) {
         // Update existing routine
         const res = await fetch(`/api/routines/${editingRoutine.id}`, {
@@ -264,7 +270,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
           body: JSON.stringify({
             name: routineName,
             description: routineDesc,
-            exercises: selectedExercises,
+            exercises: normalizedExercises,
           }),
         });
         const data = await res.json();
@@ -285,7 +291,7 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
           body: JSON.stringify({
             name: routineName,
             description: routineDesc,
-            exercises: selectedExercises,
+            exercises: normalizedExercises,
           }),
         });
         const data = await res.json();
@@ -634,35 +640,37 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
                             )}
                             <div className="flex items-center space-x-2 text-xs shrink-0">
                               <input
-                                type="number"
-                                min="1"
-                                max="20"
-                                onKeyDown={(e) => {
-                                  if (e.key === "-" || e.key === "e") e.preventDefault();
-                                }}
-                                value={item.targetSets}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={item.targetSets === undefined ? "" : item.targetSets}
                                 onChange={(e) => {
-                                  const raw = e.target.value;
-                                  // Allow free typing — only clamp on blur
-                                  const val = raw === "" ? 2 : Math.max(1, parseInt(raw) || 1);
+                                  const val = e.target.value.replace(/[^0-9]/g, "");
                                   setSelectedExercises(
                                     selectedExercises.map((ex) =>
                                       ex.exerciseId === item.exerciseId ? { ...ex, targetSets: val } : ex
                                     )
                                   );
                                 }}
-                                className="w-12 text-center bg-[var(--card)] border border-[var(--border)] rounded py-1 text-[var(--foreground)] font-mono"
+                                onBlur={() => {
+                                  setSelectedExercises(
+                                    selectedExercises.map((ex) => {
+                                      if (ex.exerciseId !== item.exerciseId) return ex;
+                                      const num = parseInt(String(ex.targetSets), 10);
+                                      return { ...ex, targetSets: isNaN(num) || num < 1 ? 2 : num };
+                                    })
+                                  );
+                                }}
+                                placeholder="2"
+                                className="w-12 text-center bg-[var(--card)] border border-[var(--border)] rounded py-1 text-[var(--foreground)] font-mono focus:outline-none focus:border-[var(--accent)]"
                                 title="Target sets"
                               />
                               <span className="text-[var(--muted-foreground)]">sets ×</span>
                               <input
-                                type="number"
-                                min="1"
-                                max="100"
-                                onKeyDown={(e) => {
-                                  if (e.key === "-" || e.key === "e") e.preventDefault();
-                                }}
-                                value={item.targetReps}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={item.targetReps === undefined ? "" : item.targetReps}
                                 onChange={(e) => {
                                   const val = e.target.value.replace(/[^0-9]/g, "");
                                   setSelectedExercises(
@@ -673,8 +681,8 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
                                     )
                                   );
                                 }}
-                                placeholder="10"
-                                className="w-16 text-center bg-[var(--card)] border border-[var(--border)] rounded py-1 text-[var(--foreground)] font-mono"
+                                placeholder="Reps"
+                                className="w-16 text-center bg-[var(--card)] border border-[var(--border)] rounded py-1 text-[var(--foreground)] font-mono focus:outline-none focus:border-[var(--accent)]"
                                 title="Target reps"
                               />
                               <button
