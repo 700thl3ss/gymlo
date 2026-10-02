@@ -110,3 +110,59 @@ export function playTimerChime() {
     // Audio Context not allowed or supported
   }
 }
+
+export function scheduleServiceWorkerTimer(delayMs: number, title?: string, body?: string) {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  try {
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "START_REST_TIMER",
+        delayMs,
+        title,
+        body,
+      });
+    } else {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({
+          type: "START_REST_TIMER",
+          delayMs,
+          title,
+          body,
+        });
+      });
+    }
+  } catch (err) {
+    console.warn("Failed to schedule service worker timer:", err);
+  }
+}
+
+export function cancelServiceWorkerTimer() {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  try {
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "CANCEL_REST_TIMER" });
+    } else {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: "CANCEL_REST_TIMER" });
+      });
+    }
+  } catch (err) {}
+}
+
+export async function requestScreenWakeLock(): Promise<any> {
+  if (typeof window === "undefined" || !("wakeLock" in navigator)) return null;
+  try {
+    const lock = await (navigator as any).wakeLock.request("screen");
+    return lock;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function releaseScreenWakeLock(lock: any) {
+  if (!lock) return;
+  try {
+    lock.release().catch(() => {});
+  } catch (err) {}
+}
+
