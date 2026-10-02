@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { CorgiLogo } from "@/components/CorgiLogo";
 import { CardioSection } from "@/components/CardioSection";
+import { RestTimer } from "@/components/RestTimer";
 import { getSavedSettings, applyTheme } from "@/lib/settings";
 
 export default function Home() {
@@ -26,6 +27,17 @@ export default function Home() {
   const [loadingActiveWorkout, setLoadingActiveWorkout] = useState(true);
   const [routines, setRoutines] = useState<any[]>([]);
   const [settings, setSettings] = useState(() => getSavedSettings());
+
+  // Global Rest Timer state across all tabs
+  const [showRestTimer, setShowRestTimer] = useState(false);
+  const [restTimerSeconds, setRestTimerSeconds] = useState<number | undefined>(undefined);
+  const [restTimerKey, setRestTimerKey] = useState(0);
+
+  const handleStartRestTimer = (seconds?: number) => {
+    setRestTimerSeconds(seconds);
+    setRestTimerKey((k) => k + 1);
+    setShowRestTimer(true);
+  };
 
   // Apply theme on initial load
   useEffect(() => {
@@ -152,27 +164,36 @@ export default function Home() {
         </div>
       )}
 
+      {/* Global Rest Timer Widget — persistent across all tabs and continues ticking in background */}
+      {showRestTimer && (
+        <RestTimer
+          key={restTimerKey}
+          initialSeconds={restTimerSeconds}
+          onClose={() => setShowRestTimer(false)}
+        />
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
-        {activeTab === "workout" && (
-          <>
-            {loadingActiveWorkout ? (
-              <div className="py-20 text-center text-[var(--muted-foreground)] text-sm">
-                Checking active session...
-              </div>
-            ) : activeWorkout ? (
-              <ActiveWorkoutView
-                workout={activeWorkout}
-                previousPerformances={previousPerformances}
-                recordsToBeat={recordsToBeat}
-                onWorkoutUpdated={fetchActiveWorkout}
-                onWorkoutFinished={() => {
-                  fetchActiveWorkout();
-                  setActiveTab("history");
-                }}
-                unit={settings.weightUnit}
-              />
-            ) : (
+        <div className={activeTab === "workout" ? "block" : "hidden"}>
+          {loadingActiveWorkout ? (
+            <div className="py-20 text-center text-[var(--muted-foreground)] text-sm">
+              Checking active session...
+            </div>
+          ) : activeWorkout ? (
+            <ActiveWorkoutView
+              workout={activeWorkout}
+              previousPerformances={previousPerformances}
+              recordsToBeat={recordsToBeat}
+              onWorkoutUpdated={fetchActiveWorkout}
+              onWorkoutFinished={() => {
+                fetchActiveWorkout();
+                setActiveTab("history");
+              }}
+              unit={settings.weightUnit}
+              onStartRestTimer={handleStartRestTimer}
+            />
+          ) : (
               /* Start Workout Dashboard */
               <div className="space-y-6 pb-20">
                 {/* Hero Card */}
@@ -255,20 +276,23 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </>
-        )}
+        </div>
 
-        {activeTab === "routines" && (
+        <div className={activeTab === "routines" ? "block" : "hidden"}>
           <RoutineManager
             onStartRoutine={startRoutineWorkout}
             onStartQuickWorkout={startQuickWorkout}
             onRoutinesChanged={fetchRoutines}
           />
-        )}
+        </div>
 
-        {activeTab === "exercises" && <ExerciseLibrary />}
+        <div className={activeTab === "exercises" ? "block" : "hidden"}>
+          <ExerciseLibrary />
+        </div>
 
-        {activeTab === "history" && <HistoryAndStats unit={settings.weightUnit} />}
+        <div className={activeTab === "history" ? "block" : "hidden"}>
+          <HistoryAndStats unit={settings.weightUnit} />
+        </div>
       </main>
     </div>
   );

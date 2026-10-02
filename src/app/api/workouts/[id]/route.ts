@@ -193,7 +193,7 @@ export async function PATCH(
             rpe: s.rpe ? parseFloat(s.rpe) : null,
             setType: s.setType || "NORMAL",
             isCompleted: Boolean(s.isCompleted),
-            completedAt: s.isCompleted ? new Date() : null,
+            completedAt: s.isCompleted ? (s.completedAt ? new Date(s.completedAt) : new Date()) : null,
             notes: s.notes || null,
           },
         });

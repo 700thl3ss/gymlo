@@ -29,6 +29,7 @@ interface ActiveWorkoutViewProps {
   onWorkoutUpdated: () => void;
   onWorkoutFinished: () => void;
   unit?: "lbs" | "kg";
+  onStartRestTimer?: (seconds?: number) => void;
 }
 
 export function ActiveWorkoutView({
@@ -38,6 +39,7 @@ export function ActiveWorkoutView({
   onWorkoutUpdated,
   onWorkoutFinished,
   unit = "lbs",
+  onStartRestTimer,
 }: ActiveWorkoutViewProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [setsData, setSetsData] = useState<any[]>(workout.sets || []);
@@ -63,29 +65,93 @@ export function ActiveWorkoutView({
   useEffect(() => {
     const incoming = workout.sets || [];
     if (workout.id !== prevWorkoutIdRef.current) {
-      // Different (or first-loaded) workout — full reset is correct
       prevWorkoutIdRef.current = workout.id;
-      setSetsData(incoming);
+
+      // Check localStorage for saved in-flight sets
+      let initialSets = incoming;
+      try {
+        const savedSets = localStorage.getItem(`gymlo_active_sets_${workout.id}`);
+        if (savedSets) {
+          const parsed = JSON.parse(savedSets);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const parsedMap = new Map(parsed.map((s: any) => [s.id, s]));
+            initialSets = incoming.map((dbSet: any) => {
+              const saved = parsedMap.get(dbSet.id);
+              return saved !== undefined
+                ? {
+                    ...dbSet,
+                    weight: saved.weight !== undefined ? saved.weight : dbSet.weight,
+                    reps: saved.reps !== undefined ? saved.reps : dbSet.reps,
+                    isCompleted: saved.isCompleted !== undefined ? saved.isCompleted : dbSet.isCompleted,
+                    notes: saved.notes !== undefined ? saved.notes : dbSet.notes,
+                  }
+                : dbSet;
+            });
+          }
+        }
+      } catch (e) {}
+      setSetsData(initialSets);
+
+      // Check localStorage for in-flight workout name & notes
+      try {
+        const savedInfo = localStorage.getItem(`gymlo_active_info_${workout.id}`);
+        if (savedInfo) {
+          const parsed = JSON.parse(savedInfo);
+          setWorkoutName(parsed.name || workout.name || "Workout");
+          setWorkoutNotes(parsed.notes !== undefined ? parsed.notes : (workout.notes || ""));
+          return;
+        }
+      } catch (e) {}
+
+      setWorkoutName(workout.name || "Workout");
+      setWorkoutNotes(workout.notes || "");
     } else {
-      // Same workout re-fetched (e.g. after addSet / removeSet).
-      // Merge: accept all server fields EXCEPT notes, which we keep from
-      // local state so in-flight / unsaved note text isn't clobbered.
+      // Same workout re-fetched (e.g. after addSet / removeSet / addExercise).
+      // Merge: keep all local in-flight values (weight, reps, isCompleted, notes)
       setSetsData((prev) => {
         const localMap = new Map(prev.map((s: any) => [s.id, s]));
-        // Build the new list from the server order, preserving local notes
         const merged = incoming.map((dbSet: any) => {
           const local = localMap.get(dbSet.id);
-          // If we have a locally-edited version, keep its notes value
           return local !== undefined
-            ? { ...dbSet, notes: local.notes }
+            ? {
+                ...dbSet,
+                weight: local.weight !== undefined ? local.weight : dbSet.weight,
+                reps: local.reps !== undefined ? local.reps : dbSet.reps,
+                isCompleted: local.isCompleted !== undefined ? local.isCompleted : dbSet.isCompleted,
+                notes: local.notes !== undefined ? local.notes : dbSet.notes,
+              }
             : dbSet;
         });
         return merged;
       });
     }
-    setWorkoutName(workout.name || "Workout");
-    setWorkoutNotes(workout.notes || "");
   }, [workout]);
+
+  // Debounced auto-save to localStorage and database
+  useEffect(() => {
+    if (!workout?.id || setsData.length === 0) return;
+    try {
+      localStorage.setItem(`gymlo_active_sets_${workout.id}`, JSON.stringify(setsData));
+      localStorage.setItem(
+        `gymlo_active_info_${workout.id}`,
+        JSON.stringify({ name: workoutName, notes: workoutNotes })
+      );
+    } catch (e) {}
+
+    const timer = setTimeout(() => {
+      fetch(`/api/workouts/${workout.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sets: setsData,
+          name: workoutName,
+          notes: workoutNotes,
+        }),
+      }).catch(console.error);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [setsData, workoutName, workoutNotes, workout?.id]);
 
   useEffect(() => {
     const startTime = new Date(workout.startedAt).getTime();
@@ -160,7 +226,12 @@ export function ActiveWorkoutView({
     setSetsData(updatedSets);
 
     if (nextCompleted) {
-      setShowRestTimer(true);
+      if (onStartRestTimer) {
+        const s = getSavedSettings();
+        onStartRestTimer(s.restPreset1);
+      } else {
+        setShowRestTimer(true);
+      }
     }
 
     try {
@@ -257,6 +328,11 @@ export function ActiveWorkoutView({
       });
       const data = await res.json();
       if (data.success) {
+        try {
+          localStorage.removeItem(`gymlo_active_sets_${workout.id}`);
+          localStorage.removeItem(`gymlo_active_info_${workout.id}`);
+        } catch (e) {}
+
         let vol = 0;
         let cSets = 0;
         for (const s of data.workout.sets) {
@@ -294,6 +370,10 @@ export function ActiveWorkoutView({
       const res = await fetch(`/api/workouts/${workout.id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
+        try {
+          localStorage.removeItem(`gymlo_active_sets_${workout.id}`);
+          localStorage.removeItem(`gymlo_active_info_${workout.id}`);
+        } catch (e) {}
         onWorkoutFinished();
       }
     } catch (err) {
@@ -363,8 +443,8 @@ export function ActiveWorkoutView({
 
   return (
     <div className="space-y-6 pb-28">
-      {/* Rest Timer */}
-      {showRestTimer && (
+      {/* Rest Timer (fallback if no parent handler) */}
+      {showRestTimer && !onStartRestTimer && (
         <RestTimer onClose={() => setShowRestTimer(false)} />
       )}
 
@@ -396,7 +476,13 @@ export function ActiveWorkoutView({
           <div className="flex items-center space-x-2 flex-wrap gap-y-2 mt-2 sm:mt-0">
             {/* Rest Button */}
             <button
-              onClick={() => setShowRestTimer(true)}
+              onClick={() => {
+                if (onStartRestTimer) {
+                  onStartRestTimer();
+                } else {
+                  setShowRestTimer(true);
+                }
+              }}
               className="px-4 py-2.5 rounded-xl text-sm font-bold bg-[var(--secondary)] text-[var(--foreground)] hover:border-[var(--accent)] border border-[var(--border)] transition-colors flex items-center space-x-1.5"
               title="Open Rest Timer"
             >
