@@ -7,7 +7,6 @@ import { getSavedSettings } from "@/lib/settings";
 import {
   registerServiceWorker,
   requestNotificationPermission,
-  sendRestTimerNotification,
   scheduleServerTimerPush,
   cancelServerTimerPush,
   requestScreenWakeLock,
@@ -49,16 +48,16 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
       wakeLockRef.current = null;
     }
 
+    // Cancel server push immediately because user is already here in the app!
+    if (activeTimerId) {
+      cancelServerTimerPush(activeTimerId);
+    }
+
     // Play pleasant ambient chime (mixes with music, does not pause Spotify)
     playTimerChime();
 
-    // If app is currently visible in foreground, show single notification
-    if (document.visibilityState === "visible") {
-      sendRestTimerNotification(
-        "Rest Timer Done! 🔔",
-        "Your rest period is over. Time for your next set!"
-      );
-    }
+    // NOTE: We do NOT send a notification banner when inside the app.
+    // Notifications are only for when user is outside the app (TikTok, locked).
 
     if (typeof document !== "undefined") {
       document.title = "🔔 REST OVER! — Gymlo";
@@ -137,6 +136,12 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
       setSecondsRemaining(remaining);
 
       if (remaining > 0) {
+        if (remaining <= 1 && typeof document !== "undefined" && document.visibilityState === "visible") {
+          // User is actively looking at the app, cancel server push so APNs doesn't send a notification banner
+          if (currentTimerIdRef.current) {
+            cancelServerTimerPush(currentTimerIdRef.current);
+          }
+        }
         if (typeof document !== "undefined") {
           document.title = `(${formatTime(remaining)}) Rest Timer — Gymlo`;
         }

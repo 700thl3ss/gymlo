@@ -79,7 +79,8 @@ export async function POST(request: Request) {
 
       if (remainingMs <= 50000) {
         if (remainingMs > 0) {
-          await new Promise((resolve) => setTimeout(resolve, remainingMs));
+          // Add 500ms grace period so in-app cancellation lands before dispatching
+          await new Promise((resolve) => setTimeout(resolve, remainingMs + 500));
         }
 
         const fresh = await prisma.scheduledTimer.findUnique({
