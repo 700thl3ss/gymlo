@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { webpush } from "@/lib/vapid";
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     const targetTimestamp = Date.now() + delaySeconds * 1000;
 
-    // 2. Cancel any previous pending timers for this endpoint to prevent duplicate notifications
+    // 2. Cancel any previous pending timers for this endpoint to prevent duplicates
     await prisma.scheduledTimer.updateMany({
       where: {
         endpoint: subscription.endpoint,
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         endpoint: subscription.endpoint,
         targetTimestamp,
         title: title || "Rest Timer Done! 🔔",
-        body: notifBody || "Time for your next set. Let's get it!",
+        body: notifBody || "Your rest period is over. Time for your next set!",
         isCancelled: false,
         isSent: false,
       },
@@ -58,71 +58,69 @@ export async function POST(request: Request) {
         endpoint: subscription.endpoint,
         targetTimestamp,
         title: title || "Rest Timer Done! 🔔",
-        body: notifBody || "Time for your next set. Let's get it!",
+        body: notifBody || "Your rest period is over. Time for your next set!",
         isCancelled: false,
         isSent: false,
       },
     });
 
-    // Determine host origin for self-chaining if needed
+    // Determine host origin for chaining
     const origin =
       request.headers.get("origin") ||
       (request.headers.get("x-forwarded-host")
         ? `https://${request.headers.get("x-forwarded-host")}`
         : new URL(request.url).origin);
 
-    const remainingMs = targetTimestamp - Date.now();
+    // Schedule background execution using Next.js after()
+    // This allows the response to be returned to the client IMMEDIATELY,
+    // so user switching to TikTok or locking phone DOES NOT kill the server process!
+    after(async () => {
+      const remainingMs = targetTimestamp - Date.now();
 
-    if (remainingMs <= 50000) {
-      // Short delay: wait in this invocation and deliver directly
-      if (remainingMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingMs));
-      }
+      if (remainingMs <= 50000) {
+        if (remainingMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remainingMs));
+        }
 
-      const fresh = await prisma.scheduledTimer.findUnique({
-        where: { timerId },
-      });
-
-      if (fresh && !fresh.isCancelled && !fresh.isSent) {
-        await prisma.scheduledTimer.update({
+        const fresh = await prisma.scheduledTimer.findUnique({
           where: { timerId },
-          data: { isSent: true },
         });
 
-        const payload = JSON.stringify({
-          title: fresh.title,
-          body: fresh.body,
+        if (fresh && !fresh.isCancelled && !fresh.isSent) {
+          await prisma.scheduledTimer.update({
+            where: { timerId },
+            data: { isSent: true },
+          });
+
+          const payload = JSON.stringify({
+            title: fresh.title,
+            body: fresh.body,
+          });
+
+          await webpush.sendNotification(subscription, payload).catch((err) => {
+            console.warn("Failed to deliver Web Push:", err);
+          });
+        }
+      } else {
+        // Wait 45s, then dispatch next hop
+        await new Promise((resolve) => setTimeout(resolve, 45000));
+
+        const fresh = await prisma.scheduledTimer.findUnique({
+          where: { timerId },
         });
 
-        await webpush.sendNotification(subscription, payload).catch((err) => {
-          console.warn("Failed to deliver Web Push:", err);
-        });
-
-        return NextResponse.json({ success: true, delivered: true });
+        if (fresh && !fresh.isCancelled && !fresh.isSent) {
+          await fetch(`${origin}/api/timer/dispatch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ timerId }),
+          }).catch((err) => console.warn("Next hop dispatch failed:", err));
+        }
       }
+    });
 
-      return NextResponse.json({ success: true, cancelled: true });
-    } else {
-      // Long delay (> 50s): wait 45s, then chain to hop route
-      await new Promise((resolve) => setTimeout(resolve, 45000));
-
-      const fresh = await prisma.scheduledTimer.findUnique({
-        where: { timerId },
-      });
-
-      if (fresh && !fresh.isCancelled && !fresh.isSent) {
-        // Trigger next hop asynchronously
-        fetch(`${origin}/api/timer/hop`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ timerId }),
-        }).catch((err) => console.warn("Next hop trigger failed:", err));
-
-        return NextResponse.json({ success: true, chained: true });
-      }
-
-      return NextResponse.json({ success: true, cancelled: true });
-    }
+    // Return response immediately to iPhone!
+    return NextResponse.json({ success: true, timerId, scheduled: true });
   } catch (error: any) {
     console.error("Timer schedule error:", error);
     return NextResponse.json(

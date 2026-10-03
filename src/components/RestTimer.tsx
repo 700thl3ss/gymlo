@@ -98,7 +98,9 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
     armServerPush(defaultTime);
 
     return () => {
-      cancelServerTimerPush(currentTimerIdRef.current);
+      // NOTE: We do NOT cancel the server push on unmount.
+      // If the user navigates away, switches to TikTok, or locks their phone,
+      // the server push MUST still fire when the timer ends!
       if (wakeLockRef.current) {
         releaseScreenWakeLock(wakeLockRef.current);
         wakeLockRef.current = null;
@@ -107,11 +109,14 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
         document.title = "Gymlo";
       }
     };
-  }, [defaultTime, armServerPush]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update target time and re-arm when initialSeconds changes
+  const prevInitialSecondsRef = useRef<number | undefined>(initialSeconds);
   useEffect(() => {
-    if (initialSeconds !== undefined) {
+    if (initialSeconds !== undefined && initialSeconds !== prevInitialSecondsRef.current) {
+      prevInitialSecondsRef.current = initialSeconds;
       cancelServerTimerPush(currentTimerIdRef.current);
       totalSecondsRef.current = initialSeconds;
       targetEndTimeRef.current = Date.now() + initialSeconds * 1000;
