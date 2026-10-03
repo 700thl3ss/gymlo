@@ -1,4 +1,4 @@
-// Gymlo Service Worker for Web Notifications & Background Rest Timer
+// Gymlo Service Worker for Web Push Notifications
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -7,32 +7,34 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-let activeTimerId = null;
+// Handle real Web Push notifications from Apple APNs / server
+self.addEventListener('push', (event) => {
+  let data = {
+    title: "Rest Timer Done! 🔔",
+    body: "Time for your next set. Let's get it!",
+  };
 
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'START_REST_TIMER') {
-    if (activeTimerId) {
-      clearTimeout(activeTimerId);
-      activeTimerId = null;
+  try {
+    if (event.data) {
+      data = event.data.json();
     }
-    const delay = event.data.delayMs || 60000;
-    activeTimerId = setTimeout(() => {
-      self.registration.showNotification(event.data.title || "Rest Timer Done! 🔔", {
-        body: event.data.body || "Time for your next set. Let's get it!",
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-        tag: "gymlo-rest-timer",
-        renotify: true,
-        vibrate: [250, 100, 250, 100, 300],
-      });
-      activeTimerId = null;
-    }, delay);
-  } else if (event.data && event.data.type === 'CANCEL_REST_TIMER') {
-    if (activeTimerId) {
-      clearTimeout(activeTimerId);
-      activeTimerId = null;
+  } catch (e) {
+    if (event.data) {
+      data.body = event.data.text();
     }
   }
+
+  const options = {
+    body: data.body || "Time for your next set. Let's get it!",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: "gymlo-rest-timer", // Deduplicates so at most 1 notification is ever visible
+    renotify: false,
+    vibrate: [250, 100, 250, 100, 300],
+    data: { url: "/" },
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title || "Rest Timer Done! 🔔", options));
 });
 
 self.addEventListener('notificationclick', (event) => {

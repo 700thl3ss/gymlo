@@ -142,3 +142,24 @@ model CardioSession {
   @@index([workoutSessionId])
   @@index([userId])
 }
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ScheduledTimer {
+  id              String   @id @default(cuid())
+  timerId         String   @unique
+  endpoint        String
+  targetTimestamp Float
+  title           String   @default("Rest Timer Done! 🔔")
+  body            String   @default("Time for your next set. Let's get it!")
+  isCancelled     Boolean  @default(false)
+  isSent          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
