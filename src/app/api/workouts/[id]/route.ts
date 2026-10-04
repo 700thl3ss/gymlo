@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateEstimated1RM } from "@/lib/utils";
+import { getSessionUser } from "@/lib/auth";
 
 export async function GET(
   request: Request,
@@ -208,12 +209,14 @@ export async function PATCH(
     // 7. Finish Workout logic & PR Calculation
     let newPRs: any[] = [];
     if (finishWorkout) {
+      const user = await getSessionUser(request);
       const existing = await prisma.workoutSession.findUnique({
         where: { id },
         include: { sets: true },
       });
 
       if (existing) {
+        const currentUserId = user?.id || existing.userId || "guest-user";
         const completedAt = new Date();
         const durationSeconds = Math.max(
           1,
@@ -229,9 +232,10 @@ export async function PATCH(
 
           const est1RM = calculateEstimated1RM(set.weight, set.reps);
 
-          // Check previous highest estimated 1RM for this exercise
+          // Check previous highest estimated 1RM for this exercise for THIS user
           const prev1RM = await prisma.personalRecord.findFirst({
             where: {
+              userId: currentUserId,
               exerciseId: set.exerciseId,
               recordType: "ESTIMATED_1RM",
             },
@@ -241,7 +245,7 @@ export async function PATCH(
           if (!prev1RM || est1RM > prev1RM.value) {
             const pr = await prisma.personalRecord.create({
               data: {
-                userId: "guest-user",
+                userId: currentUserId,
                 exerciseId: set.exerciseId,
                 recordType: "ESTIMATED_1RM",
                 value: est1RM,
@@ -253,9 +257,10 @@ export async function PATCH(
             newPRs.push(pr);
           }
 
-          // Check previous highest single weight lifted
+          // Check previous highest single weight lifted for THIS user
           const prevWeight = await prisma.personalRecord.findFirst({
             where: {
+              userId: currentUserId,
               exerciseId: set.exerciseId,
               recordType: "MAX_WEIGHT",
             },
@@ -265,7 +270,7 @@ export async function PATCH(
           if (!prevWeight || set.weight > prevWeight.value) {
             await prisma.personalRecord.create({
               data: {
-                userId: "guest-user",
+                userId: currentUserId,
                 exerciseId: set.exerciseId,
                 recordType: "MAX_WEIGHT",
                 value: set.weight,

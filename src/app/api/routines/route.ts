@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
     const routines = await prisma.routine.findMany({
+      where: { userId },
       include: {
         exercises: {
           include: {
@@ -32,6 +37,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
     const body = await request.json();
     const { name, description, exercises } = body;
 
@@ -46,7 +54,7 @@ export async function POST(request: Request) {
       data: {
         name,
         description: description || null,
-        userId: "guest-user",
+        userId,
         exercises: {
           create: (exercises || []).map((item: any, idx: number) => ({
             exerciseId: item.exerciseId,

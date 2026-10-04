@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Dumbbell, Calendar, BookOpen, Trophy, Settings as SettingsIcon } from "lucide-react";
+import { Dumbbell, Calendar, BookOpen, Trophy, Settings as SettingsIcon, User as UserIcon } from "lucide-react";
 import { CorgiLogo } from "./CorgiLogo";
 import { SettingsModal } from "./SettingsModal";
 import { AppSettings } from "@/lib/settings";
+import { UserProfile } from "./AuthModal";
 
 export type TabType = "workout" | "routines" | "exercises" | "history";
 
@@ -13,6 +14,8 @@ interface NavbarProps {
   setActiveTab: (tab: TabType) => void;
   hasActiveWorkout: boolean;
   onSettingsChanged?: (settings: AppSettings) => void;
+  currentUser?: UserProfile | null;
+  onOpenAuthModal?: () => void;
 }
 
 export function Navbar({
@@ -20,6 +23,8 @@ export function Navbar({
   setActiveTab,
   hasActiveWorkout,
   onSettingsChanged,
+  currentUser,
+  onOpenAuthModal,
 }: NavbarProps) {
   const [showSettings, setShowSettings] = useState(false);
 
@@ -103,6 +108,20 @@ export function Navbar({
             >
               <SettingsIcon className="w-5 h-5" />
             </button>
+
+            {/* Account / Profile button */}
+            <button
+              onClick={onOpenAuthModal}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[var(--card)] hover:bg-[var(--secondary)] border border-[var(--border)] transition-colors text-xs font-bold text-[var(--foreground)]"
+              title={currentUser ? `Account: ${currentUser.name}` : "Log In or Create Account"}
+            >
+              <div className="w-5 h-5 rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center text-[10px] font-black shrink-0">
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <UserIcon className="w-3 h-3" />}
+              </div>
+              <span className="hidden sm:inline max-w-[90px] truncate">
+                {currentUser?.name || "Sign In"}
+              </span>
+            </button>
           </div>
         </div>
       </header>
@@ -145,6 +164,8 @@ export function Navbar({
         onSettingsSaved={(newSettings) => {
           if (onSettingsChanged) onSettingsChanged(newSettings);
         }}
+        currentUser={currentUser}
+        onOpenAuthModal={onOpenAuthModal}
       />
     </>
   );

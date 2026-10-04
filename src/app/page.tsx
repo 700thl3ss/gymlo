@@ -17,6 +17,8 @@ import {
 import { CorgiLogo } from "@/components/CorgiLogo";
 import { CardioSection } from "@/components/CardioSection";
 import { RestTimer } from "@/components/RestTimer";
+import { AuthModal, UserProfile } from "@/components/AuthModal";
+import { ImportRoutineModal } from "@/components/ImportRoutineModal";
 import { getSavedSettings, applyTheme } from "@/lib/settings";
 
 export default function Home() {
@@ -27,6 +29,14 @@ export default function Home() {
   const [loadingActiveWorkout, setLoadingActiveWorkout] = useState(true);
   const [routines, setRoutines] = useState<any[]>([]);
   const [settings, setSettings] = useState(() => getSavedSettings());
+
+  // User Authentication & Session State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isFirstSetup, setIsFirstSetup] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Routine Import from Share Link (?importRoutine=...)
+  const [importRoutineId, setImportRoutineId] = useState<string | null>(null);
 
   // Global Rest Timer state across all tabs
   const [showRestTimer, setShowRestTimer] = useState(false);
@@ -39,11 +49,31 @@ export default function Home() {
     setShowRestTimer(true);
   };
 
-  // Apply theme on initial load
+  // Apply theme on initial load & check current session
   useEffect(() => {
     const s = getSavedSettings();
     setSettings(s);
     applyTheme(s.theme);
+
+    // Fetch current user session
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setCurrentUser(data.user);
+          setIsFirstSetup(Boolean(data.isFirstSetup));
+        }
+      })
+      .catch(console.error);
+
+    // Check for shared routine URL parameter
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const shareId = params.get("importRoutine");
+      if (shareId) {
+        setImportRoutineId(shareId);
+      }
+    }
   }, []);
 
   // Fetch active workout
@@ -135,6 +165,24 @@ export default function Home() {
     }
   };
 
+  const handleAuthSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    setIsFirstSetup(false);
+    fetchActiveWorkout();
+    fetchRoutines();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      fetchActiveWorkout();
+      fetchRoutines();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col font-sans selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
       {/* Top Header */}
@@ -146,6 +194,8 @@ export default function Home() {
           setSettings(newSettings);
           applyTheme(newSettings.theme);
         }}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setShowAuthModal(true)}
       />
 
       {/* Persistent Active Workout Banner */}
@@ -294,6 +344,33 @@ export default function Home() {
           <HistoryAndStats unit={settings.weightUnit} />
         </div>
       </main>
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        currentUser={currentUser}
+        isFirstSetup={isFirstSetup}
+        onAuthSuccess={handleAuthSuccess}
+        onLogout={handleLogout}
+      />
+
+      {/* Routine Import Modal */}
+      <ImportRoutineModal
+        routineId={importRoutineId}
+        onClose={() => {
+          setImportRoutineId(null);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("importRoutine");
+            window.history.replaceState({}, "", url.pathname);
+          }
+        }}
+        onRoutineImported={() => {
+          fetchRoutines();
+          setActiveTab("routines");
+        }}
+      />
     </div>
   );
 }

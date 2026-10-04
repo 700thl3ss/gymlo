@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Play, Trash2, Dumbbell, X, Layers, Search, Pencil, GripVertical } from "lucide-react";
+import { Plus, Play, Trash2, Dumbbell, X, Layers, Search, Pencil, GripVertical, Share2, Check } from "lucide-react";
 
 interface RoutineManagerProps {
   onStartRoutine: (routineId: string) => void;
@@ -38,6 +38,18 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
   const [customCategory, setCustomCategory] = useState("Smith Machine");
   const [customEquipment, setCustomEquipment] = useState("");
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
+
+  const [copiedRoutineId, setCopiedRoutineId] = useState<string | null>(null);
+
+  const handleShareRoutine = (e: React.MouseEvent, routineId: string) => {
+    e.stopPropagation();
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/?importRoutine=${routineId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedRoutineId(routineId);
+      setTimeout(() => setCopiedRoutineId(null), 2500);
+    });
+  };
 
   const handleCreateCustomExercise = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -443,16 +455,29 @@ export function RoutineManager({ onStartRoutine, onStartQuickWorkout, onRoutines
                         {routine.name}
                       </h3>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteRoutine(routine.id);
-                      }}
-                      className="text-[var(--muted-foreground)] hover:text-red-500 p-1 rounded-lg transition-colors ml-1"
-                      title="Delete routine"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={(e) => handleShareRoutine(e, routine.id)}
+                        className="text-[var(--muted-foreground)] hover:text-[var(--accent)] p-1 rounded-lg transition-colors"
+                        title="Share routine with a friend"
+                      >
+                        {copiedRoutineId === routine.id ? (
+                          <Check className="w-4 h-4 text-emerald-500" />
+                        ) : (
+                          <Share2 className="w-4 h-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRoutine(routine.id);
+                        }}
+                        className="text-[var(--muted-foreground)] hover:text-red-500 p-1 rounded-lg transition-colors"
+                        title="Delete routine"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {routine.description && (

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
     const workouts = await prisma.workoutSession.findMany({
       where: {
+        userId,
         completedAt: { not: null },
       },
       include: {

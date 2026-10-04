@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
     const { searchParams } = new URL(request.url);
     const active = searchParams.get("active");
 
     if (active === "true") {
       const activeCardio = await prisma.cardioSession.findFirst({
-        where: { completedAt: null },
+        where: { userId, completedAt: null },
         orderBy: { startedAt: "desc" },
       });
       return NextResponse.json({ success: true, cardio: activeCardio });
     }
 
     const cardioSessions = await prisma.cardioSession.findMany({
+      where: { userId },
       orderBy: { startedAt: "desc" },
     });
 
@@ -30,6 +35,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
     const body = await request.json();
     const {
       activityType = "run",
@@ -40,11 +48,12 @@ export async function POST(request: Request) {
       intensity = "Moderate",
       notes = null,
       workoutSessionId = null,
-      isLive = false, // if true, starts timer without completedAt
+      isLive = false,
     } = body;
 
     const session = await prisma.cardioSession.create({
       data: {
+        userId,
         activityType: activityType.toLowerCase(),
         durationMinutes: parseInt(durationMinutes, 10) || 0,
         durationSeconds: parseInt(durationSeconds, 10) || 0,

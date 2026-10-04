@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
     const activeSession = await prisma.workoutSession.findFirst({
       where: {
+        userId,
         completedAt: null,
       },
       include: {
@@ -61,12 +66,13 @@ export async function GET() {
     const recordsToBeat: Record<string, { maxWeight: number; maxReps: number }> = {};
 
     for (const exId of exerciseIds) {
-      // 1. All completed sets across all finished workouts for this exercise
+      // 1. All completed sets across all finished workouts for this exercise for THIS USER
       const allCompletedSets = await prisma.workoutSet.findMany({
         where: {
           exerciseId: exId,
           isCompleted: true,
           workoutSession: {
+            userId,
             completedAt: { not: null },
             id: { not: activeSession.id },
           },
@@ -85,12 +91,13 @@ export async function GET() {
       }
       recordsToBeat[exId] = { maxWeight: highestWeight, maxReps: highestReps };
 
-      // 2. Previous session sets for relative set comparison
+      // 2. Previous session sets for relative set comparison for THIS USER
       const prevSets = await prisma.workoutSet.findMany({
         where: {
           exerciseId: exId,
           isCompleted: true,
           workoutSession: {
+            userId,
             completedAt: { not: null },
             id: { not: activeSession.id },
           },

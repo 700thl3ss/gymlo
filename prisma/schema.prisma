@@ -8,11 +8,12 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String?  @unique
-  name      String   @default("Athlete")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String?  @unique
+  passwordHash String?
+  name         String   @default("Athlete")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   workouts        WorkoutSession[]
   routines        Routine[]
@@ -46,6 +47,7 @@ model Routine {
   description String?
   userId      String?
   user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareCode   String?  @unique
   orderIndex  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -145,11 +147,14 @@ model CardioSession {
 
 model PushSubscription {
   id        String   @id @default(cuid())
+  userId    String?
   endpoint  String   @unique
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model ScheduledTimer {

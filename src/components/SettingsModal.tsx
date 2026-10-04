@@ -1,17 +1,26 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Settings as SettingsIcon, Sun, Moon, Laptop, Palette, Timer, Check } from "lucide-react";
+import { X, Settings as SettingsIcon, Sun, Moon, Laptop, Palette, Timer, Check, User as UserIcon } from "lucide-react";
 import { AppTheme, AppSettings, WeightUnit, getSavedSettings, saveSettings } from "@/lib/settings";
 import { CorgiLogo } from "./CorgiLogo";
+import { UserProfile } from "./AuthModal";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSettingsSaved?: (newSettings: AppSettings) => void;
+  currentUser?: UserProfile | null;
+  onOpenAuthModal?: () => void;
 }
 
-export function SettingsModal({ isOpen, onClose, onSettingsSaved }: SettingsModalProps) {
+export function SettingsModal({
+  isOpen,
+  onClose,
+  onSettingsSaved,
+  currentUser,
+  onOpenAuthModal,
+}: SettingsModalProps) {
   const [settings, setSettings] = useState<AppSettings>(getSavedSettings());
   const [preset1, setPreset1] = useState(settings.restPreset1);
   const [preset2, setPreset2] = useState(settings.restPreset2);
@@ -102,6 +111,33 @@ export function SettingsModal({ isOpen, onClose, onSettingsSaved }: SettingsModa
         </div>
 
         <form onSubmit={handleSave} className="p-5 space-y-6 max-h-[80vh] overflow-y-auto">
+          {/* Account Profile Box */}
+          <div className="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)] flex items-center justify-between">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center font-black text-sm shrink-0">
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-[var(--foreground)] truncate">
+                  {currentUser?.name || "Guest Athlete"}
+                </div>
+                <div className="text-[11px] text-[var(--muted-foreground)] truncate">
+                  {currentUser?.email || "No account linked yet"}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenAuthModal?.();
+              }}
+              className="px-3 py-1.5 rounded-lg bg-[var(--secondary)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--foreground)] text-xs font-bold border border-[var(--border)] transition-colors shrink-0 ml-2"
+            >
+              {currentUser ? "Manage" : "Sign In / Register"}
+            </button>
+          </div>
+
           {/* Theme Selection */}
           <div className="space-y-3">
             <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[var(--muted-foreground)]">

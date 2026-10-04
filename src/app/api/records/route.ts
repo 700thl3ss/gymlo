@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // 1. Fetch personal records
+    const user = await getSessionUser(request);
+    const userId = user?.id || "guest-user";
+
+    // 1. Fetch personal records for THIS user
     const records = await prisma.personalRecord.findMany({
+      where: { userId },
       include: {
         exercise: true,
       },
@@ -26,9 +31,10 @@ export async function GET() {
       recordsByExercise[rec.exerciseId].records.push(rec);
     }
 
-    // 2. Fetch all completed workouts for overall stats
+    // 2. Fetch all completed workouts for THIS user for overall stats
     const workouts = await prisma.workoutSession.findMany({
       where: {
+        userId,
         completedAt: { not: null },
       },
       include: {
