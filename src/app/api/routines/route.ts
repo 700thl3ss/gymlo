@@ -5,7 +5,10 @@ import { getSessionUser } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const user = await getSessionUser(request);
-    const userId = user?.id || "guest-user";
+    if (!user) {
+      return NextResponse.json({ success: true, routines: [] });
+    }
+    const userId = user.id;
 
     const routines = await prisma.routine.findMany({
       where: { userId },
@@ -38,7 +41,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getSessionUser(request);
-    const userId = user?.id || "guest-user";
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Please log in or create an account to create a routine." },
+        { status: 401 }
+      );
+    }
+    const userId = user.id;
 
     const body = await request.json();
     const { name, description, exercises } = body;

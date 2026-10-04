@@ -21,7 +21,13 @@ import {
 import { formatTime } from "@/lib/utils";
 import { WorkoutCalendar } from "./WorkoutCalendar";
 
-export function HistoryAndStats({ unit = "lbs" }: { unit?: "lbs" | "kg" } = {}) {
+interface HistoryAndStatsProps {
+  unit?: "lbs" | "kg";
+  currentUser?: any;
+  onOpenAuthModal?: () => void;
+}
+
+export function HistoryAndStats({ unit = "lbs", currentUser, onOpenAuthModal }: HistoryAndStatsProps) {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [cardioSessions, setCardioSessions] = useState<any[]>([]);
   const [recordsData, setRecordsData] = useState<any | null>(null);
@@ -115,6 +121,25 @@ export function HistoryAndStats({ unit = "lbs" }: { unit?: "lbs" | "kg" } = {}) 
 
   return (
     <div className="space-y-6 pb-24">
+      {/* Sign In Prompt for Unauthenticated Visitors */}
+      {!currentUser && (
+        <div className="bg-[var(--secondary)] border border-[var(--border)] rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="font-bold text-sm text-[var(--foreground)]">Log in to view your workouts & PR calendar</h4>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Your personal training history, PR trophies, and calendar logs are private to your account.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenAuthModal}
+            className="px-4 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-bold text-xs shadow hover:opacity-90 transition-all shrink-0"
+          >
+            Log In / Sign Up
+          </button>
+        </div>
+      )}
+
       {/* KPI Stats Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4">

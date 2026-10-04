@@ -5,7 +5,13 @@ import { getSessionUser } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     const user = await getSessionUser(request);
-    const userId = user?.id || "guest-user";
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Please log in or create an account to start a workout." },
+        { status: 401 }
+      );
+    }
+    const userId = user.id;
 
     const body = await request.json();
     const { routineId, name } = body;

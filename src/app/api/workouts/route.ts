@@ -5,7 +5,10 @@ import { getSessionUser } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const user = await getSessionUser(request);
-    const userId = user?.id || "guest-user";
+    if (!user) {
+      return NextResponse.json({ success: true, workouts: [] });
+    }
+    const userId = user.id;
 
     const workouts = await prisma.workoutSession.findMany({
       where: {

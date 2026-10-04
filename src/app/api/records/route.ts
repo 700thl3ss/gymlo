@@ -5,7 +5,20 @@ import { getSessionUser } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const user = await getSessionUser(request);
-    const userId = user?.id || "guest-user";
+    if (!user) {
+      return NextResponse.json({
+        success: true,
+        records: [],
+        stats: {
+          totalWorkouts: 0,
+          totalLifetimeVolume: 0,
+          totalCompletedSets: 0,
+          totalHours: 0,
+        },
+        volumeChartData: [],
+      });
+    }
+    const userId = user.id;
 
     // 1. Fetch personal records for THIS user
     const records = await prisma.personalRecord.findMany({

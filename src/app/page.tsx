@@ -117,6 +117,11 @@ export default function Home() {
 
   // Start workout from routine
   const startRoutineWorkout = async (routineId: string) => {
+    if (!currentUser) {
+      setShowAuthModal(true);
+      return;
+    }
+
     try {
       const res = await fetch("/api/workouts/start", {
         method: "POST",
@@ -142,6 +147,11 @@ export default function Home() {
 
   // Start empty / quick workout
   const startQuickWorkout = async () => {
+    if (!currentUser) {
+      setShowAuthModal(true);
+      return;
+    }
+
     try {
       const res = await fetch("/api/workouts/start", {
         method: "POST",
@@ -341,7 +351,11 @@ export default function Home() {
         </div>
 
         <div className={activeTab === "history" ? "block" : "hidden"}>
-          <HistoryAndStats unit={settings.weightUnit} />
+          <HistoryAndStats
+            unit={settings.weightUnit}
+            currentUser={currentUser}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+          />
         </div>
       </main>
 
