@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculateEstimated1RM } from "@/lib/utils";
 import { getSessionUser } from "@/lib/auth";
 
 export async function GET(
