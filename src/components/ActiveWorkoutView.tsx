@@ -531,8 +531,12 @@ export function ActiveWorkoutView({
           let maxR = serverBeat ? serverBeat.maxReps : 0;
           if (maxW === 0 && prevHistory.length > 0) {
             for (const s of prevHistory) {
-              if (s.weight > maxW) maxW = s.weight;
-              if (s.reps > maxR) maxR = s.reps;
+              if (s.weight > maxW) {
+                maxW = s.weight;
+                maxR = s.reps;
+              } else if (s.weight === maxW && s.reps > maxR) {
+                maxR = s.reps;
+              }
             }
           }
           const beatTarget = { maxWeight: maxW, maxReps: maxR };
@@ -999,7 +1003,8 @@ export function ActiveWorkoutView({
                     <div key={pr.id} className="flex justify-between items-center text-xs">
                       <span className="text-[var(--foreground)] font-semibold">{pr.exercise?.name}</span>
                       <span className="font-mono font-bold text-[var(--accent)]">
-                        {pr.value} {unit} (Est 1RM)
+                        {pr.value} {unit}
+                        {pr.workoutSet?.reps ? ` · ${pr.workoutSet.reps} reps` : ""}
                       </span>
                     </div>
                   ))}

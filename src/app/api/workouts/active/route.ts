@@ -87,12 +87,16 @@ export async function GET(request: Request) {
       });
 
       let highestWeight = 0;
-      let highestReps = 0;
+      let repsAtHighestWeight = 0;
       for (const s of allCompletedSets) {
-        if (s.weight > highestWeight) highestWeight = s.weight;
-        if (s.reps > highestReps) highestReps = s.reps;
+        if (s.weight > highestWeight) {
+          highestWeight = s.weight;
+          repsAtHighestWeight = s.reps;
+        } else if (s.weight === highestWeight && s.reps > repsAtHighestWeight) {
+          repsAtHighestWeight = s.reps;
+        }
       }
-      recordsToBeat[exId] = { maxWeight: highestWeight, maxReps: highestReps };
+      recordsToBeat[exId] = { maxWeight: highestWeight, maxReps: repsAtHighestWeight };
 
       // 2. Previous session sets for relative set comparison for THIS USER
       const prevSets = await prisma.workoutSet.findMany({

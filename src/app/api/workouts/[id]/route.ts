@@ -226,58 +226,45 @@ export async function PATCH(
         updateData.completedAt = completedAt;
         updateData.durationSeconds = durationSeconds;
 
-        // Calculate and register Personal Records for completed sets
+        // Calculate and register Personal Records: PR is strictly the highest weight done!
+        const bestSetsInWorkout = new Map<string, typeof existing.sets[0]>();
         for (const set of existing.sets) {
           if (!set.isCompleted || set.weight <= 0 || set.reps <= 0) continue;
+          const currentBest = bestSetsInWorkout.get(set.exerciseId);
+          if (
+            !currentBest ||
+            set.weight > currentBest.weight ||
+            (set.weight === currentBest.weight && set.reps > currentBest.reps)
+          ) {
+            bestSetsInWorkout.set(set.exerciseId, set);
+          }
+        }
 
-          const est1RM = calculateEstimated1RM(set.weight, set.reps);
-
-          // Check previous highest estimated 1RM for this exercise for THIS user
-          const prev1RM = await prisma.personalRecord.findFirst({
+        // For each exercise, check if this workout's best weight beats the all-time highest weight
+        for (const [exerciseId, bestSet] of bestSetsInWorkout.entries()) {
+          const prevWeightRecord = await prisma.personalRecord.findFirst({
             where: {
               userId: currentUserId,
-              exerciseId: set.exerciseId,
-              recordType: "ESTIMATED_1RM",
+              exerciseId,
+              recordType: "MAX_WEIGHT",
+              workoutSetId: { not: bestSet.id },
             },
             orderBy: { value: "desc" },
           });
 
-          if (!prev1RM || est1RM > prev1RM.value) {
+          if (!prevWeightRecord || bestSet.weight > prevWeightRecord.value) {
             const pr = await prisma.personalRecord.create({
               data: {
                 userId: currentUserId,
-                exerciseId: set.exerciseId,
-                recordType: "ESTIMATED_1RM",
-                value: est1RM,
-                workoutSetId: set.id,
+                exerciseId,
+                recordType: "MAX_WEIGHT",
+                value: bestSet.weight,
+                workoutSetId: bestSet.id,
                 achievedAt: completedAt,
               },
-              include: { exercise: true },
+              include: { exercise: true, workoutSet: true },
             });
             newPRs.push(pr);
-          }
-
-          // Check previous highest single weight lifted for THIS user
-          const prevWeight = await prisma.personalRecord.findFirst({
-            where: {
-              userId: currentUserId,
-              exerciseId: set.exerciseId,
-              recordType: "MAX_WEIGHT",
-            },
-            orderBy: { value: "desc" },
-          });
-
-          if (!prevWeight || set.weight > prevWeight.value) {
-            await prisma.personalRecord.create({
-              data: {
-                userId: currentUserId,
-                exerciseId: set.exerciseId,
-                recordType: "MAX_WEIGHT",
-                value: set.weight,
-                workoutSetId: set.id,
-                achievedAt: completedAt,
-              },
-            });
           }
         }
       }

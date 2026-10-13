@@ -20,11 +20,12 @@ export async function GET(request: Request) {
     }
     const userId = user.id;
 
-    // 1. Fetch personal records for THIS user
+    // 1. Fetch personal records for THIS user (including workoutSet)
     const records = await prisma.personalRecord.findMany({
       where: { userId },
       include: {
         exercise: true,
+        workoutSet: true,
       },
       orderBy: {
         achievedAt: "desc",
@@ -38,10 +39,18 @@ export async function GET(request: Request) {
         recordsByExercise[rec.exerciseId] = {
           exerciseName: rec.exercise.name,
           primaryMuscle: rec.exercise.primaryMuscle,
+          maxWeight: 0,
+          repsAtMaxWeight: 0,
           records: [],
         };
       }
       recordsByExercise[rec.exerciseId].records.push(rec);
+      if (rec.recordType === "MAX_WEIGHT" && rec.value > recordsByExercise[rec.exerciseId].maxWeight) {
+        recordsByExercise[rec.exerciseId].maxWeight = rec.value;
+        if (rec.workoutSet?.reps) {
+          recordsByExercise[rec.exerciseId].repsAtMaxWeight = rec.workoutSet.reps;
+        }
+      }
     }
 
     // 2. Fetch all completed workouts for THIS user for overall stats

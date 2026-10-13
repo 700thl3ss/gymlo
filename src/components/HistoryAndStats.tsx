@@ -243,8 +243,9 @@ export function HistoryAndStats({ unit = "lbs", currentUser, onOpenAuthModal }: 
               .filter((group: any) => isEditingPrs || !hiddenPrExercises.includes(group.exerciseName))
               .map((group: any) => {
                 const isHidden = hiddenPrExercises.includes(group.exerciseName);
-                const best1RM = group.records.find((r: any) => r.recordType === "ESTIMATED_1RM");
-                const maxWeight = group.records.find((r: any) => r.recordType === "MAX_WEIGHT");
+                const maxWeightRecord = group.records.find((r: any) => r.recordType === "MAX_WEIGHT");
+                const prWeight = group.maxWeight || maxWeightRecord?.value || 0;
+                const prReps = group.repsAtMaxWeight || maxWeightRecord?.workoutSet?.reps || 0;
 
                 const toggleVisibility = () => {
                   let updated: string[];
@@ -295,21 +296,23 @@ export function HistoryAndStats({ unit = "lbs", currentUser, onOpenAuthModal }: 
                     <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
                       <div>
                         <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
-                          Est 1RM
+                          PR (Highest Weight)
                         </span>
-                        <span className="text-sm font-mono font-black text-[var(--accent)]">
-                          {best1RM ? `${best1RM.value} ${unit}` : "—"}
+                        <span className="text-base font-mono font-black text-[var(--accent)]">
+                          {prWeight > 0 ? `${prWeight} ${unit}` : "—"}
                         </span>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
-                          Heaviest
-                        </span>
-                        <span className="text-sm font-mono font-bold text-[var(--foreground)]">
-                          {maxWeight ? `${maxWeight.value} ${unit}` : "—"}
-                        </span>
-                      </div>
+                      {prReps > 0 && (
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
+                            Reps
+                          </span>
+                          <span className="text-sm font-mono font-bold text-[var(--foreground)]">
+                            {prReps} reps
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
