@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { calculateEstimated1RM } from "@/lib/utils";
 
 export async function GET(request: Request) {
   try {
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
           primaryMuscle: rec.exercise.primaryMuscle,
           maxWeight: 0,
           repsAtMaxWeight: 0,
+          est1RM: 0,
           records: [],
         };
       }
@@ -49,6 +51,15 @@ export async function GET(request: Request) {
         recordsByExercise[rec.exerciseId].maxWeight = rec.value;
         if (rec.workoutSet?.reps) {
           recordsByExercise[rec.exerciseId].repsAtMaxWeight = rec.workoutSet.reps;
+        }
+      }
+      if (rec.recordType === "ESTIMATED_1RM" && rec.value > recordsByExercise[rec.exerciseId].est1RM) {
+        recordsByExercise[rec.exerciseId].est1RM = rec.value;
+      }
+      if (rec.workoutSet && rec.workoutSet.weight > 0 && rec.workoutSet.reps > 0) {
+        const est = calculateEstimated1RM(rec.workoutSet.weight, rec.workoutSet.reps);
+        if (est > recordsByExercise[rec.exerciseId].est1RM) {
+          recordsByExercise[rec.exerciseId].est1RM = est;
         }
       }
     }
@@ -62,6 +73,7 @@ export async function GET(request: Request) {
       include: {
         sets: {
           where: { isCompleted: true },
+          include: { exercise: true },
         },
       },
       orderBy: {
@@ -77,6 +89,35 @@ export async function GET(request: Request) {
       let sessionVolume = 0;
       for (const s of w.sets) {
         sessionVolume += s.weight * s.reps;
+
+        if (s.exercise) {
+          if (!recordsByExercise[s.exerciseId]) {
+            recordsByExercise[s.exerciseId] = {
+              exerciseName: s.exercise.name,
+              primaryMuscle: s.exercise.primaryMuscle,
+              maxWeight: 0,
+              repsAtMaxWeight: 0,
+              est1RM: 0,
+              records: [],
+            };
+          }
+          if (s.weight > recordsByExercise[s.exerciseId].maxWeight) {
+            recordsByExercise[s.exerciseId].maxWeight = s.weight;
+            recordsByExercise[s.exerciseId].repsAtMaxWeight = s.reps;
+          } else if (
+            s.weight === recordsByExercise[s.exerciseId].maxWeight &&
+            s.reps > recordsByExercise[s.exerciseId].repsAtMaxWeight
+          ) {
+            recordsByExercise[s.exerciseId].repsAtMaxWeight = s.reps;
+          }
+
+          if (s.weight > 0 && s.reps > 0) {
+            const est = calculateEstimated1RM(s.weight, s.reps);
+            if (est > recordsByExercise[s.exerciseId].est1RM) {
+              recordsByExercise[s.exerciseId].est1RM = est;
+            }
+          }
+        }
       }
       totalLifetimeVolume += sessionVolume;
       totalCompletedSets += w.sets.length;
@@ -91,6 +132,13 @@ export async function GET(request: Request) {
         durationMinutes: Math.round(w.durationSeconds / 60),
       };
     });
+
+    // Fallback: ensure est1RM is calculated if maxWeight is present
+    for (const group of Object.values(recordsByExercise)) {
+      if (group.est1RM === 0 && group.maxWeight > 0) {
+        group.est1RM = calculateEstimated1RM(group.maxWeight, group.repsAtMaxWeight || 1);
+      }
+    }
 
     return NextResponse.json({
       success: true,

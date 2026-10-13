@@ -18,7 +18,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { formatTime } from "@/lib/utils";
+import { formatTime, calculateEstimated1RM } from "@/lib/utils";
 import { WorkoutCalendar } from "./WorkoutCalendar";
 
 interface HistoryAndStatsProps {
@@ -243,9 +243,14 @@ export function HistoryAndStats({ unit = "lbs", currentUser, onOpenAuthModal }: 
               .filter((group: any) => isEditingPrs || !hiddenPrExercises.includes(group.exerciseName))
               .map((group: any) => {
                 const isHidden = hiddenPrExercises.includes(group.exerciseName);
-                const maxWeightRecord = group.records.find((r: any) => r.recordType === "MAX_WEIGHT");
+                const maxWeightRecord = group.records?.find((r: any) => r.recordType === "MAX_WEIGHT");
                 const prWeight = group.maxWeight || maxWeightRecord?.value || 0;
                 const prReps = group.repsAtMaxWeight || maxWeightRecord?.workoutSet?.reps || 0;
+                const best1RMRecord = group.records?.find((r: any) => r.recordType === "ESTIMATED_1RM");
+                const est1RM =
+                  group.est1RM ||
+                  best1RMRecord?.value ||
+                  (prWeight > 0 ? calculateEstimated1RM(prWeight, prReps || 1) : 0);
 
                 const toggleVisibility = () => {
                   let updated: string[];
@@ -293,26 +298,31 @@ export function HistoryAndStats({ unit = "lbs", currentUser, onOpenAuthModal }: 
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
+                    <div className="flex items-end justify-between pt-1 border-t border-[var(--border)]">
                       <div>
                         <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
                           PR (Highest Weight)
                         </span>
-                        <span className="text-base font-mono font-black text-[var(--accent)]">
-                          {prWeight > 0 ? `${prWeight} ${unit}` : "—"}
-                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-mono font-black text-[var(--accent)]">
+                            {prWeight > 0 ? `${prWeight} ${unit}` : "—"}
+                          </span>
+                          {prReps > 0 && (
+                            <span className="text-xs font-mono text-[var(--muted-foreground)]">
+                              ({prReps} {prReps === 1 ? "rep" : "reps"})
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {prReps > 0 && (
-                        <div className="text-right">
-                          <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
-                            Reps
-                          </span>
-                          <span className="text-sm font-mono font-bold text-[var(--foreground)]">
-                            {prReps} reps
-                          </span>
-                        </div>
-                      )}
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase text-[var(--muted-foreground)] font-bold block">
+                          Est 1RM
+                        </span>
+                        <span className="text-sm font-mono font-bold text-[var(--foreground)]">
+                          {est1RM > 0 ? `${est1RM} ${unit}` : "—"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
