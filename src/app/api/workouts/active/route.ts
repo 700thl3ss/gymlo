@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     const recordsToBeat: Record<string, { maxWeight: number; maxReps: number }> = {};
 
     for (const exId of exerciseIds) {
-      // 1. All completed sets across all finished workouts for this exercise for THIS USER
+      // 1. All completed sets across all finished workouts for THIS USER (all-time, for PR)
       const allCompletedSets = await prisma.workoutSet.findMany({
         where: {
           exerciseId: exId,
@@ -98,7 +98,9 @@ export async function GET(request: Request) {
       }
       recordsToBeat[exId] = { maxWeight: highestWeight, maxReps: repsAtHighestWeight };
 
-      // 2. Previous session sets for relative set comparison for THIS USER
+      // 2. Previous session sets for relative set comparison — scoped to SAME ROUTINE when available
+      //    This makes "Prev:" weight specific to the routine, not shared across different upper day orderings
+      const routineId = activeSession.routineId;
       const prevSets = await prisma.workoutSet.findMany({
         where: {
           exerciseId: exId,
@@ -107,6 +109,8 @@ export async function GET(request: Request) {
             userId,
             completedAt: { not: null },
             id: { not: activeSession.id },
+            // If this workout came from a routine, only look at sessions from the SAME routine
+            ...(routineId ? { routineId } : {}),
           },
         },
         orderBy: {

@@ -60,13 +60,15 @@ export async function POST(request: Request) {
 
         // For each routine exercise, prepare the default sets
         for (const re of routine.exercises) {
-          // Check last used weight/reps for this exercise for THIS user
+          // Check last used weight/reps for this exercise — scoped to THIS SAME ROUTINE
+          // so each upper day variant has its own independent weight history
           const lastSet = await prisma.workoutSet.findFirst({
             where: {
               exerciseId: re.exerciseId,
               isCompleted: true,
               workoutSession: {
                 userId,
+                routineId: routine.id, // ← routine-specific lookup
               },
             },
             orderBy: {
