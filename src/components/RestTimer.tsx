@@ -21,16 +21,47 @@ interface RestTimerProps {
 
 export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
   const [settings] = useState(() => getSavedSettings());
-  const defaultTime = initialSeconds !== undefined ? initialSeconds : settings.restPreset1;
-  const [secondsRemaining, setSecondsRemaining] = useState(defaultTime);
+  
+  // Calculate default time, checking if there is already an active timer target in localStorage
+  const getInitialTimerState = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("gymlo_active_timer");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.targetEndTime && parsed.targetEndTime > Date.now()) {
+            const rem = Math.ceil((parsed.targetEndTime - Date.now()) / 1000);
+            return {
+              secondsRemaining: rem,
+              targetEndTime: parsed.targetEndTime,
+              totalSeconds: parsed.totalSeconds || rem,
+              timerId: parsed.timerId || `timer_${Date.now()}`,
+              isFresh: false,
+            };
+          }
+        }
+      } catch (e) {}
+    }
+    const t = initialSeconds !== undefined ? initialSeconds : settings.restPreset1;
+    return {
+      secondsRemaining: t,
+      targetEndTime: Date.now() + t * 1000,
+      totalSeconds: t,
+      timerId: `timer_${Date.now()}`,
+      isFresh: true,
+    };
+  };
+
+  const [initialState] = useState(getInitialTimerState);
+  const [secondsRemaining, setSecondsRemaining] = useState(initialState.secondsRemaining);
   const [isRunning, setIsRunning] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [notifPermission, setNotifPermission] = useState<string>("default");
 
-  const targetEndTimeRef = useRef<number>(Date.now() + defaultTime * 1000);
-  const totalSecondsRef = useRef<number>(defaultTime);
+  const targetEndTimeRef = useRef<number>(initialState.targetEndTime);
+  const totalSecondsRef = useRef<number>(initialState.totalSeconds);
   const isRunningRef = useRef<boolean>(true);
-  const currentTimerIdRef = useRef<string>(`timer_${Date.now()}`);
+  const currentTimerIdRef = useRef<string>(initialState.timerId);
   const notifiedTimerIdRef = useRef<string | null>(null);
   const wakeLockRef = useRef<any>(null);
 
@@ -41,6 +72,12 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
       return; // Already notified!
     }
     notifiedTimerIdRef.current = activeTimerId;
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("gymlo_active_timer");
+      } catch (e) {}
+    }
 
     // Release screen wake lock
     if (wakeLockRef.current) {
@@ -56,20 +93,30 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
     // Play pleasant ambient chime (mixes with music, does not pause Spotify)
     playTimerChime();
 
-    // NOTE: We do NOT send a notification banner when inside the app.
-    // Notifications are only for when user is outside the app (TikTok, locked).
-
     if (typeof document !== "undefined") {
       document.title = "🔔 REST OVER! — Gymlo";
     }
   }, []);
 
-  // Arm background server push for the active timer
+  // Arm background server push for the active timer and persist target in localStorage
   const armServerPush = useCallback((durationSecs: number) => {
     if (durationSecs <= 0) return;
     const newTimerId = `timer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     currentTimerIdRef.current = newTimerId;
     notifiedTimerIdRef.current = null;
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(
+          "gymlo_active_timer",
+          JSON.stringify({
+            timerId: newTimerId,
+            targetEndTime: targetEndTimeRef.current,
+            totalSeconds: totalSecondsRef.current,
+          })
+        );
+      } catch (e) {}
+    }
 
     scheduleServerTimerPush(
       newTimerId,
@@ -94,7 +141,20 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
       }
     }
 
-    armServerPush(defaultTime);
+    if (initialState.isFresh) {
+      armServerPush(initialState.totalSeconds);
+    } else {
+      // Ongoing timer restored from localStorage
+      const rem = Math.max(0, Math.ceil((initialState.targetEndTime - Date.now()) / 1000));
+      if (rem > 0) {
+        // Keep wake lock active
+        requestScreenWakeLock().then((lock) => {
+          if (lock) wakeLockRef.current = lock;
+        });
+      } else {
+        triggerCompletion();
+      }
+    }
 
     return () => {
       // NOTE: We do NOT cancel the server push on unmount.
@@ -136,12 +196,6 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
       setSecondsRemaining(remaining);
 
       if (remaining > 0) {
-        if (remaining <= 1 && typeof document !== "undefined" && document.visibilityState === "visible") {
-          // User is actively looking at the app, cancel server push so APNs doesn't send a notification banner
-          if (currentTimerIdRef.current) {
-            cancelServerTimerPush(currentTimerIdRef.current);
-          }
-        }
         if (typeof document !== "undefined") {
           document.title = `(${formatTime(remaining)}) Rest Timer — Gymlo`;
         }
@@ -285,6 +339,11 @@ export function RestTimer({ initialSeconds, onClose }: RestTimerProps) {
             <button
               onClick={() => {
                 cancelServerTimerPush(currentTimerIdRef.current);
+                if (typeof window !== "undefined") {
+                  try {
+                    localStorage.removeItem("gymlo_active_timer");
+                  } catch (e) {}
+                }
                 if (wakeLockRef.current) releaseScreenWakeLock(wakeLockRef.current);
                 onClose();
               }}

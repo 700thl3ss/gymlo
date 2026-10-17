@@ -38,15 +38,50 @@ export default function Home() {
   // Routine Import from Share Link (?importRoutine=...)
   const [importRoutineId, setImportRoutineId] = useState<string | null>(null);
 
-  // Global Rest Timer state across all tabs
-  const [showRestTimer, setShowRestTimer] = useState(false);
-  const [restTimerSeconds, setRestTimerSeconds] = useState<number | undefined>(undefined);
+  // Global Rest Timer state across all tabs with localStorage persistence
+  const [showRestTimer, setShowRestTimer] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("gymlo_active_timer");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.targetEndTime && parsed.targetEndTime > Date.now()) {
+            return true;
+          }
+        }
+      } catch (e) {}
+    }
+    return false;
+  });
+  const [restTimerSeconds, setRestTimerSeconds] = useState<number | undefined>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("gymlo_active_timer");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.targetEndTime && parsed.targetEndTime > Date.now()) {
+            return Math.ceil((parsed.targetEndTime - Date.now()) / 1000);
+          }
+        }
+      } catch (e) {}
+    }
+    return undefined;
+  });
   const [restTimerKey, setRestTimerKey] = useState(0);
 
   const handleStartRestTimer = (seconds?: number) => {
     setRestTimerSeconds(seconds);
     setRestTimerKey((k) => k + 1);
     setShowRestTimer(true);
+  };
+
+  const handleCloseRestTimer = () => {
+    setShowRestTimer(false);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("gymlo_active_timer");
+      } catch (e) {}
+    }
   };
 
   // Apply theme on initial load & check current session
@@ -76,9 +111,11 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch active workout
-  const fetchActiveWorkout = useCallback(async () => {
+  // Fetch active workout — set loadingActiveWorkout only on very first call so subsequent
+  // refreshes (after set completion, tab switch, etc.) don't blank out the screen
+  const fetchActiveWorkout = useCallback(async (isInitialLoad = false) => {
     try {
+      if (isInitialLoad) setLoadingActiveWorkout(true);
       const res = await fetch("/api/workouts/active");
       const data = await res.json();
       if (data.success && data.workout) {
@@ -93,7 +130,7 @@ export default function Home() {
     } catch (err) {
       console.error("Failed to check active workout:", err);
     } finally {
-      setLoadingActiveWorkout(false);
+      if (isInitialLoad) setLoadingActiveWorkout(false);
     }
   }, []);
 
@@ -111,7 +148,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchActiveWorkout();
+    fetchActiveWorkout(true);
     fetchRoutines();
   }, [fetchActiveWorkout, fetchRoutines]);
 
@@ -229,7 +266,7 @@ export default function Home() {
         <RestTimer
           key={restTimerKey}
           initialSeconds={restTimerSeconds}
-          onClose={() => setShowRestTimer(false)}
+          onClose={handleCloseRestTimer}
         />
       )}
 
