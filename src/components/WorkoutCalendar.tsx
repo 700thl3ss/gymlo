@@ -22,7 +22,7 @@ export function WorkoutCalendar({
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => {
     const today = new Date();
-    return today.toISOString().split("T")[0];
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   });
   // Default sets breakdown minimized (empty set of expanded workout IDs)
   const [expandedWorkoutIds, setExpandedWorkoutIds] = useState<Set<string>>(new Set());
@@ -77,7 +77,7 @@ export function WorkoutCalendar({
   const goToToday = () => {
     const now = new Date();
     setCurrentDate(new Date(now.getFullYear(), now.getMonth(), 1));
-    setSelectedDateStr(now.toISOString().split("T")[0]);
+    setSelectedDateStr(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
   };
 
   // Days calculations
